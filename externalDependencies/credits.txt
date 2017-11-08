@@ -1,3 +1,4 @@
-GLFW: http://www.glfw.org/
-GLEW: http://glew.sourceforge.net/
-GLM: https://glm.g-truc.net/0.9.8/index.html
+GLFW 3.2.1: http://www.glfw.org/
+GLEW 2.1.0: http://glew.sourceforge.net/
+GLM 0.9.8.5: https://glm.g-truc.net/0.9.8/index.html
+wxWidgets 3.10: https://www.wxwidgets.org/

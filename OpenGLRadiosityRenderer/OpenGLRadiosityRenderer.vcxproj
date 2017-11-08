@@ -157,11 +157,13 @@
   <ItemGroup>
     <ClInclude Include="inc\OpenGLGlobalHeader.h" />
     <ClInclude Include="src\Frontend\MainApp.h" />
+    <ClInclude Include="src\Frontend\MainFrame.h" />
     <ClInclude Include="src\stdafx.h" />
     <ClInclude Include="src\targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Frontend\MainApp.cpp" />
+    <ClCompile Include="src\Frontend\MainFrame.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -39,6 +39,9 @@
     <ClInclude Include="src\Frontend\MainApp.h">
       <Filter>Source Files\Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Frontend\MainFrame.h">
+      <Filter>Source Files\Frontend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\stdafx.cpp">
@@ -48,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Frontend\MainApp.cpp">
+      <Filter>Source Files\Frontend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Frontend\MainFrame.cpp">
       <Filter>Source Files\Frontend</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,3 +1,8 @@
+//Parts of this file adapted from:
+//https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/1.2.hello_window_clear/hello_window_clear.cpp 
+//and
+//http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/
+
 #include "stdafx.h"
 
 #include <iostream>
@@ -34,7 +39,7 @@ void Renderer::startRenderer() {
 	if (window == NULL) {
 		std::cout << "Failed to create window" << std::endl;
 		glfwTerminate();
-		//return;
+		return;
 	}
 
 	glfwMakeContextCurrent(window);

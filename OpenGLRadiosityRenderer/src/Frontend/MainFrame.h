@@ -10,7 +10,7 @@ public:
 
 private:
 
-	Renderer* renderer;
+	std::unique_ptr<Renderer> renderer;
 
 	void OnLaunchRenderer(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);

@@ -4,12 +4,15 @@
 
 #include <wx\wx.h>
 
+
 #include <Renderer\Renderer.h>
 
 #include <Frontend\MainFrame.h>
 
 
 #include <iostream>
+#include <memory>
+
 
 enum {
 	ID_LAUNCH_RENDERER = 1
@@ -41,7 +44,7 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
 	SetMenuBar(menuBar);
 
-	renderer = new Renderer();
+	renderer.reset(new Renderer());
 }
 
 void MainFrame::OnExit(wxCommandEvent& event) {
@@ -58,9 +61,6 @@ void MainFrame::OnLaunchRenderer(wxCommandEvent& event) {
 	renderer->startRenderer();
 
 	std::cout << "Renderer Launched";
-
-	//TODO Make this a smart pointer
-	delete(renderer);
 
 	Close(true);
 }

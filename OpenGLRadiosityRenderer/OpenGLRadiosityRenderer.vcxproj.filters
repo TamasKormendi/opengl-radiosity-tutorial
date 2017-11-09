@@ -42,6 +42,9 @@
     <ClInclude Include="src\Frontend\MainFrame.h">
       <Filter>Source Files\Frontend</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\Renderer.h">
+      <Filter>Source Files\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\stdafx.cpp">
@@ -55,6 +58,9 @@
     </ClCompile>
     <ClCompile Include="src\Frontend\MainFrame.cpp">
       <Filter>Source Files\Frontend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\Renderer.cpp">
+      <Filter>Source Files\Renderer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

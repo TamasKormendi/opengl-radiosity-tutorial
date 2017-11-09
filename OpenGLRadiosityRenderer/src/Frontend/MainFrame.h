@@ -1,11 +1,17 @@
 #ifndef MAINFRAME_H
 #define MAINFRAME_H
 
+class Renderer;
+
 class MainFrame : public wxFrame {
+
 public:
 	MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
 
 private:
+
+	Renderer* renderer;
+
 	void OnLaunchRenderer(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
@@ -13,4 +19,4 @@ private:
 	wxDECLARE_EVENT_TABLE();
 };
 
-#endif // !MAINFRAME_H
+#endif

@@ -4,7 +4,10 @@
 
 #include <wx\wx.h>
 
+#include <Renderer\Renderer.h>
+
 #include <Frontend\MainFrame.h>
+
 
 #include <iostream>
 
@@ -18,13 +21,12 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_MENU(wxID_ABOUT, MainFrame::OnAbout)
 wxEND_EVENT_TABLE()
 
-
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 			: wxFrame(NULL, wxID_ANY, title, pos, size) {
 	
 	wxMenu* menuFile = new wxMenu();
 
-	menuFile->Append(ID_LAUNCH_RENDERER, "&Launch Renderer window", "&Help");
+	menuFile->Append(ID_LAUNCH_RENDERER, "Launch Renderer window", "Help");
 
 	menuFile->AppendSeparator();
 	menuFile->Append(wxID_EXIT);
@@ -38,6 +40,8 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 	menuBar->Append(menuHelp, "&Help");
 
 	SetMenuBar(menuBar);
+
+	renderer = new Renderer();
 }
 
 void MainFrame::OnExit(wxCommandEvent& event) {
@@ -51,7 +55,12 @@ void MainFrame::OnAbout(wxCommandEvent& event) {
 void MainFrame::OnLaunchRenderer(wxCommandEvent& event) {
 	Show(false);
 
+	renderer->startRenderer();
+
 	std::cout << "Renderer Launched";
+
+	//TODO Make this a smart pointer
+	delete(renderer);
 
 	Close(true);
 }

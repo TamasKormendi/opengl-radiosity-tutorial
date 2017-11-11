@@ -6,6 +6,9 @@ public:
 	Renderer();
 
 	void startRenderer();
+
+private:
+
 };
 
 #endif

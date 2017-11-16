@@ -9,7 +9,7 @@ struct Material {
     float shininess;
 };
 
-struct Light {
+struct PointLight {
     vec3 position;
 
     vec3 ambient; //Ambient is likely to get eliminated since it should be handled by radiosity
@@ -26,35 +26,52 @@ in vec3 normal;
 
 uniform vec3 viewPos;
 uniform Material material;
-uniform Light light;
 
+uniform int lightAmount;
+uniform PointLight pointLights[64];
+
+
+vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir);
 
 
 void main() {
     //For now I just don't add the ambient term to the end result, see the "result" calculation
+    vec3 normalisedNormal = normalize(normal);
+    vec3 viewDirection = normalize(viewPos - fragPos);
+
+    vec3 result = vec3(0.0f, 0.0f, 0.0f);
+
+    for (int i = 0; i < lightAmount; ++i) {
+        result += calculatePointLight(pointLights[i], normalisedNormal, fragPos, viewDirection);
+    }
+
+    fragColour = vec4(result, 1.0);
+}
+
+vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir) {
     vec3 ambient = light.ambient * material.diffuse;
 
-    vec3 normalisedNormal = normalize(normal);
     vec3 lightDirection = normalize(light.position - fragPos);
 
-    float diffuseAngle = max(dot(normalisedNormal, lightDirection), 0.0);
+    float diffuseAngle = max(dot(normalVec, lightDirection), 0.0);
     vec3 diffuse = light.diffuse * diffuseAngle * material.diffuse;
 
-    vec3 viewDirection = normalize(viewPos - fragPos);
-    vec3 reflectionDirection = reflect(-lightDirection, normalisedNormal);
-    float specularAngle = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
+    vec3 reflectionDirection = reflect(-lightDirection, normalVec);
+    float specularAngle = pow(max(dot(viewDir, reflectionDirection), 0.0), material.shininess);
     vec3 specular =  light.specular * specularAngle * material.specular;
 
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
+    
     ambient *= attenuation;
     diffuse *=attenuation;
     specular *= attenuation;
+    
 
     vec3 result =   //ambient + 
                     diffuse + 
                     specular;
 
-    fragColour = vec4(result, 1.0);
+    return result;
 }

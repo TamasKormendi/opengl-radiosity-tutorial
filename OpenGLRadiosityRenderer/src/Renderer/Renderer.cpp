@@ -7,6 +7,8 @@
 #include "stdafx.h"
 
 #include <iostream>
+#include <vector>
+#include <string>
 
 #include <OpenGLGlobalHeader.h>
 
@@ -21,6 +23,7 @@ const unsigned int SCREEN_HEIGHT = 720;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
@@ -30,6 +33,9 @@ bool firstMouse = true;
 
 float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
+
+std::vector<glm::vec3> lightLocations = std::vector<glm::vec3>();
+int mouseState = GLFW_RELEASE;
 
 Renderer::Renderer() {
 
@@ -58,6 +64,7 @@ void Renderer::startRenderer() {
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -151,7 +158,7 @@ void Renderer::startRenderer() {
 	glEnableVertexAttribArray(0);
 
 	//Lamp position
-	glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
+	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
 
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
@@ -181,16 +188,31 @@ void Renderer::startRenderer() {
 
 		mainShader.useProgram();
 
-		mainShader.setUniformVec3("light.position", lampPos);
 		mainShader.setUniformVec3("viewPos", camera.position);
-	
+		mainShader.setUniformInt("lightAmount", lightLocations.size());
+
 		//Ambient value is most likely going to get axed along with material.ambient
+
+		for (int i = 0; i < lightLocations.size(); ++i) {
+			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].position", lightLocations.at(i));
+			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].ambient", 0.1f, 0.1f, 0.1f);
+			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].diffuse", 1.0f, 1.0f, 1.0f);
+			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].specular", 1.0f, 1.0f, 1.0f);
+
+			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].constant", 1.0f);
+			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].linear", 0.09f);
+			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.032f);
+		}
+
+
+		/*mainShader.setUniformVec3("light.position", lampPos);
+	
 		mainShader.setUniformVec3("light.ambient", 0.1f, 0.1f, 0.1f);
 		mainShader.setUniformVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
 		mainShader.setUniformVec3("light.specular", 1.0f, 1.0f, 1.0f);
 		mainShader.setUniformFloat("light.constant", 1.0f);
 		mainShader.setUniformFloat("light.linear", 0.09f);
-		mainShader.setUniformFloat("light.quadratic", 0.032f);
+		mainShader.setUniformFloat("light.quadratic", 0.032f);*/
 
 		//Material properties, likely to be handled differently later (with Assimp?)
 		mainShader.setUniformVec3("material.ambient", 0.0f, 1.0f, 0.0f);
@@ -211,18 +233,23 @@ void Renderer::startRenderer() {
 
 		lampShader.useProgram();
 
-		//The uniform for the lamp's model is just "model"
-		glm::mat4 lampModel = glm::mat4();
-		lampModel = glm::translate(lampModel, lampPos);
-		lampModel = glm::scale(lampModel, glm::vec3(0.05f));
-		lampShader.setUniformMat4("model", lampModel);
-
 		lampShader.setUniformMat4("projection", projection);
 		lampShader.setUniformMat4("view", view);
 
 		glBindVertexArray(lampVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
+		for (int i = 0; i < lightLocations.size(); ++i) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations.at(i));
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			//The uniform for the lamp's model is just "model"
+			lampShader.setUniformMat4("model", lampModel);
+
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+
+		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -249,6 +276,26 @@ void Renderer::processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		ShaderLoader::reloadShaders();
+	}
+	if (glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && mouseState == GLFW_RELEASE) {
+		std::cout << "Oi";
+
+		mouseState = GLFW_PRESS;
+
+		glm::vec3 cameraPosition = camera.position;
+
+		lightLocations.push_back(cameraPosition);
+	}
+	if(glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+		mouseState = GLFW_RELEASE;
+	}
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		glm::vec3 cameraPosition = camera.position;
+
+		lightLocations.push_back(cameraPosition);
 	}
 }
 

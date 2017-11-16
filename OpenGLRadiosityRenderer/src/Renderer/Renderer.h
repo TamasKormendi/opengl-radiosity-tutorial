@@ -8,7 +8,7 @@ public:
 	void startRenderer();
 
 private:
-
+	void processInput(GLFWwindow* window);
 };
 
 #endif

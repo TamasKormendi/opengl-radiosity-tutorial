@@ -20,7 +20,7 @@ const unsigned int SCREEN_HEIGHT = 720;
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
+//void processInput(GLFWwindow *window);
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 
@@ -31,7 +31,7 @@ float lastY = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+float lastFrameTime = 0.0f;
 
 Renderer::Renderer() {
 
@@ -159,12 +159,28 @@ void Renderer::startRenderer() {
 	mainShader.setUniformInt("material.diffuse", 0);
 	mainShader.setUniformInt("material.specular", 1);
 
+	int frameCounter = 0;
+	double fpsTimeCounter = glfwGetTime();
+
 
 	while (!glfwWindowShouldClose(window)) {
-		float currentFrame = glfwGetTime();
+		++frameCounter;
+		
+		float currentFrameTime = glfwGetTime();
 
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		deltaTime = currentFrameTime - lastFrameTime;
+		lastFrameTime = currentFrameTime;
+
+		//TODO: This could be made a separate function
+		if ((currentFrameTime - fpsTimeCounter) >= 1.0) {
+			double actualElapsedTime = (currentFrameTime - fpsTimeCounter);
+
+			std::cout << "mSPF: " << ((actualElapsedTime * 1000) / (double)frameCounter) << " FPS: " << ((double) frameCounter / actualElapsedTime) << std::endl;
+
+			frameCounter = 0;
+			fpsTimeCounter += actualElapsedTime;
+		}
+
 
 		processInput(window);
 
@@ -178,7 +194,7 @@ void Renderer::startRenderer() {
 
 		//Ambient value is most likely going to get axed along with material.ambient
 		mainShader.setUniformVec3("light.ambient", 0.0f, 0.0f, 0.0f);
-		mainShader.setUniformVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+		mainShader.setUniformVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
 		mainShader.setUniformVec3("light.specular", 1.0f, 1.0f, 1.0f);
 		mainShader.setUniformFloat("light.constant", 1.0f);
 		mainShader.setUniformFloat("light.linear", 0.09f);
@@ -206,7 +222,7 @@ void Renderer::startRenderer() {
 		//The uniform for the lamp's model is just "model"
 		glm::mat4 lampModel = glm::mat4();
 		lampModel = glm::translate(lampModel, lampPos);
-		lampModel = glm::scale(lampModel, glm::vec3(0.2f));
+		lampModel = glm::scale(lampModel, glm::vec3(0.05f));
 		lampShader.setUniformMat4("model", lampModel);
 
 		lampShader.setUniformMat4("projection", projection);
@@ -224,7 +240,7 @@ void Renderer::startRenderer() {
 
 }
 
-void processInput(GLFWwindow* window) {
+void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 

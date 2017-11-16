@@ -11,8 +11,12 @@
 
 #include <Renderer\ShaderLoader.h>
 
+std::vector<ShaderLoader*> ShaderLoader::listOfShaders;
+
 ShaderLoader::ShaderLoader(const char* initialVertexPath, const char* initialFragmentPath) {
 	loadAndCompileShaders(initialVertexPath, initialFragmentPath);
+
+	listOfShaders.push_back(this);
 }
 
 void ShaderLoader::loadAndCompileShaders(const char* vertexPath, const char* fragmentPath) {
@@ -71,10 +75,21 @@ void ShaderLoader::loadAndCompileShaders(const char* vertexPath, const char* fra
 
 	glDeleteShader(vertexShaderID);
 	glDeleteShader(fragmentShaderID);
+
+	storedVertexPath = std::string(vertexPath);
+	storedFragmentPath = std::string(fragmentPath);
 }
 
 void ShaderLoader::useProgram() {
 	glUseProgram(ID);
+}
+
+void ShaderLoader::reloadShaders() {
+	for (ShaderLoader* loader : listOfShaders) {
+		glDeleteProgram(loader->ID);
+
+		loader->loadAndCompileShaders(loader->storedVertexPath.c_str(), loader->storedFragmentPath.c_str());
+	}
 }
 
 void ShaderLoader::checkCompileErrors(unsigned int shaderID, std::string type) {

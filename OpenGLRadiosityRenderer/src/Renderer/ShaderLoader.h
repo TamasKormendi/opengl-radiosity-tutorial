@@ -1,8 +1,14 @@
 #ifndef SHADERLOADER_H
 #define SHADERLOADER_H
 
+#include <vector>
+
 class ShaderLoader {
 public:
+	static std::vector<ShaderLoader*> listOfShaders;
+
+	static void reloadShaders();
+
 	unsigned int ID;
 
 	ShaderLoader(const char* initialVertexPath, const char* initialFragmentPath);
@@ -10,6 +16,8 @@ public:
 	void loadAndCompileShaders(const char* vertexPath, const char* fragmentPath);
 
 	void useProgram();
+
+	//Uniform setting functions
 
 	void setUniformBool(const std::string &name, bool value) const;
 
@@ -32,6 +40,8 @@ public:
 
 	void setUniformMat4(const std::string &name, const glm::mat4 &mat) const;
 private:
+	std::string storedVertexPath;
+	std::string storedFragmentPath;
 
 	void checkCompileErrors(unsigned int shader, std::string type);
 

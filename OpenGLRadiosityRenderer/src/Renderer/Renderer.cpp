@@ -18,11 +18,7 @@
 const unsigned int SCREEN_WIDTH = 1280;
 const unsigned int SCREEN_HEIGHT = 720;
 
-bool buttonPushed = false;
-
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-//void processInput(GLFWwindow *window);
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 
@@ -157,17 +153,10 @@ void Renderer::startRenderer() {
 	//Lamp position
 	glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
 
-	//mainShader.useProgram();
-	//mainShader.setUniformInt("material.diffuse", 0);
-	//mainShader.setUniformInt("material.specular", 1);
-
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
 
-
 	while (!glfwWindowShouldClose(window)) {
-
-
 		++frameCounter;
 		
 		float currentFrameTime = glfwGetTime();
@@ -191,7 +180,6 @@ void Renderer::startRenderer() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		mainShader.useProgram();
-
 
 		mainShader.setUniformVec3("light.position", lampPos);
 		mainShader.setUniformVec3("viewPos", camera.position);
@@ -241,7 +229,6 @@ void Renderer::startRenderer() {
 
 	glfwTerminate();
 
-
 }
 
 void Renderer::processInput(GLFWwindow* window) {
@@ -262,7 +249,6 @@ void Renderer::processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		ShaderLoader::reloadShaders();
-		buttonPushed = true;
 	}
 }
 

@@ -31,7 +31,7 @@ uniform Light light;
 
 
 void main() {
-    //Always should be 0
+    //For now I just don't add the ambient term to the end result, see the "result" calculation
     vec3 ambient = light.ambient * material.diffuse;
 
     vec3 normalisedNormal = normalize(normal);

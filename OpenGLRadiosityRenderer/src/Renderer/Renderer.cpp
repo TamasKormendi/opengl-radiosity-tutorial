@@ -12,6 +12,9 @@
 
 #include <OpenGLGlobalHeader.h>
 
+#include <IL\il.h>
+#include <assimp\Importer.hpp>
+
 #include <Renderer\Renderer.h>
 #include <Renderer\Camera.h>
 #include <Renderer\ShaderLoader.h>
@@ -41,6 +44,10 @@ Renderer::Renderer() {
 }
 
 void Renderer::startRenderer() {
+	Assimp::Importer importer;
+
+	ilInit();
+
 	if (!glfwInit()) {
 		std::cout << "Failed to initialise GLFW" << std::endl;
 		return;

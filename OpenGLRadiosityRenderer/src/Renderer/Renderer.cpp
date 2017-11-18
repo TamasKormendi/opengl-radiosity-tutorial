@@ -12,7 +12,8 @@
 
 #include <OpenGLGlobalHeader.h>
 
-#include<IL\il.h>
+#include <IL\il.h>
+#include <assimp\Importer.hpp>
 
 #include <Renderer\Renderer.h>
 #include <Renderer\Camera.h>
@@ -43,6 +44,8 @@ Renderer::Renderer() {
 }
 
 void Renderer::startRenderer() {
+	Assimp::Importer importer;
+
 	ilInit();
 
 	if (!glfwInit()) {

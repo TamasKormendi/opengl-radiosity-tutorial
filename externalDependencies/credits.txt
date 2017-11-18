@@ -3,3 +3,4 @@ GLEW 2.1.0: http://glew.sourceforge.net/
 GLM 0.9.8.5: https://glm.g-truc.net/0.9.8/index.html
 wxWidgets 3.10: https://www.wxwidgets.org/
 DevIL 1.8.0 http://openil.sourceforge.net/
+AssImp 4.0.1 http://assimp.org/index.html 

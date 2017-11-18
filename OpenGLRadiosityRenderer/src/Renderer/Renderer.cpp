@@ -12,6 +12,8 @@
 
 #include <OpenGLGlobalHeader.h>
 
+#include<IL\il.h>
+
 #include <Renderer\Renderer.h>
 #include <Renderer\Camera.h>
 #include <Renderer\ShaderLoader.h>
@@ -41,6 +43,8 @@ Renderer::Renderer() {
 }
 
 void Renderer::startRenderer() {
+	ilInit();
+
 	if (!glfwInit()) {
 		std::cout << "Failed to initialise GLFW" << std::endl;
 		return;

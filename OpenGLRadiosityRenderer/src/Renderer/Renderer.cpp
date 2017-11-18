@@ -35,7 +35,6 @@ float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
 
 std::vector<glm::vec3> lightLocations = std::vector<glm::vec3>();
-int mouseState = GLFW_RELEASE;
 
 Renderer::Renderer() {
 
@@ -276,18 +275,6 @@ void Renderer::processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		ShaderLoader::reloadShaders();
-	}
-	if (glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && mouseState == GLFW_RELEASE) {
-		std::cout << "Oi";
-
-		mouseState = GLFW_PRESS;
-
-		glm::vec3 cameraPosition = camera.position;
-
-		lightLocations.push_back(cameraPosition);
-	}
-	if(glfwGetKey(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-		mouseState = GLFW_RELEASE;
 	}
 }
 

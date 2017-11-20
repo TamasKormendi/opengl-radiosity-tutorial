@@ -195,7 +195,7 @@ void Renderer::startRenderer() {
 		mainShader.setUniformVec3("viewPos", camera.position);
 		mainShader.setUniformInt("lightAmount", lightLocations.size());
 
-		//Ambient value is most likely going to get axed along with material.ambient
+		//TODO: Ambient value is most likely going to get axed along with material.ambient
 
 		for (int i = 0; i < lightLocations.size(); ++i) {
 			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].position", lightLocations.at(i));

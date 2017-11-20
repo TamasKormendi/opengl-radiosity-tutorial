@@ -1,3 +1,5 @@
+//Adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/model.h and the corresponding tutorial
+
 #include "stdafx.h"
 
 #include <OpenGLGlobalHeader.h>
@@ -10,13 +12,69 @@
 #include <assimp\scene.h>
 #include <assimp\postprocess.h>
 
+#include <IL\il.h>
+
 #include <Renderer\ShaderLoader.h>
 #include <Renderer\ObjectMesh.h>
 #include <Renderer\ObjectModel.h>
 
+
+
 unsigned int loadTexture(const char* path, const std::string& directory) {
-	return 0;
+	std::string fullFilename = std::string(path);
+	
+	fullFilename = directory + '/' + fullFilename;
+
+	unsigned int imageID;
+	ILboolean success;
+
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+
+	ilGenImages(1, &imageID);
+	ilBindImage(imageID);
+
+
+	//TODO: problems might arise here
+	ilEnable(IL_ORIGIN_SET);
+	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+
+	success = ilLoadImage((ILstring)fullFilename.c_str());
+
+	if (!success) {
+		std::cout << "DevIL: Image failed to load. Path tried: " << path << std::endl;
+
+		ilDeleteImages(1, &imageID);
+		return 0;
+	}
+	else {
+		GLenum imageFormat;
+
+		switch (ilGetInteger(IL_IMAGE_FORMAT)) {
+		case IL_ALPHA:
+			imageFormat = GL_RED; ilConvertImage(IL_ALPHA, IL_UNSIGNED_BYTE); break;
+		case IL_RGB:
+			imageFormat = GL_RGB; ilConvertImage(IL_RGB, IL_UNSIGNED_BYTE); break;
+		//The default includes RGBA too
+		default:
+			imageFormat = GL_RGBA; ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE); break;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT), 0, imageFormat, GL_UNSIGNED_BYTE, ilGetData());
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		ilDeleteImages(1, &imageID);
+	}
+
+	return textureID;
 }
+
 
 
 ObjectModel::ObjectModel(const std::string& path) {
@@ -111,7 +169,7 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 	}
 
 
-	//This part is probably going to be relevant when starting to implement Radiosity patches
+	//TODO: This part is probably going to be relevant when starting to implement Radiosity patches
 	for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
 		//Shouldn't this be a pointer?
 		aiFace face = mesh->mFaces[i];
@@ -123,7 +181,7 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-	//I have some concerns about this part of the code so do investigate if something fishy is going on
+	//TODO: I have some concerns about this part of the code so do investigate if something fishy is going on
 
 	std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
 	std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
@@ -140,7 +198,9 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 	return ObjectMesh(vertices, indices, textures);
 }
 
+
 std::vector<Texture> ObjectModel::loadMaterialTextures(aiMaterial* material, aiTextureType type, std::string typeName) {
+	//TODO: Finish function
 	std::vector<Texture> emptyVector;
 
 	return emptyVector;

@@ -20,16 +20,22 @@
 
 
 
+//Some additional code for this function from:
+//http://www.geeks3d.com/20090105/tutorial-how-to-load-and-display-an-image-with-devil-and-opengl/
+//and
+//http://www.lighthouse3d.com/cg-topics/code-samples/loading-an-image-and-creating-a-texture/
 unsigned int loadTexture(const char* path, const std::string& directory) {
+
+	//TODO: Refactor fullFilename because it looks a bit repulsive
 	std::string fullFilename = std::string(path);
 	
 	fullFilename = directory + '/' + fullFilename;
 
-	unsigned int imageID;
-	ILboolean success;
-
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
+
+	unsigned int imageID;
+	ILboolean success;
 
 	ilGenImages(1, &imageID);
 	ilBindImage(imageID);
@@ -200,8 +206,32 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 
 
 std::vector<Texture> ObjectModel::loadMaterialTextures(aiMaterial* material, aiTextureType type, std::string typeName) {
-	//TODO: Finish function
-	std::vector<Texture> emptyVector;
+	std::vector<Texture> textures;
 
-	return emptyVector;
+	for (unsigned int i = 0; i < material->GetTextureCount(type); ++i) {
+		aiString currentTexturePath;
+		material->GetTexture(type, i, &currentTexturePath);
+
+		bool textureAlreadyLoaded = false;
+
+		for (unsigned int j = 0; j < texturesLoaded.size(); ++j) {
+			if (std::strcmp(texturesLoaded[j].path.C_Str(), currentTexturePath.C_Str()) == 0) {
+				textures.push_back(texturesLoaded[j]);
+
+				textureAlreadyLoaded = true;
+				break;
+			}
+		}
+		if (!textureAlreadyLoaded) {
+			Texture texture;
+			texture.ID = loadTexture(currentTexturePath.C_Str(), this->directory);
+			texture.type = typeName;
+			texture.path = currentTexturePath;
+			textures.push_back(texture);
+			texturesLoaded.push_back(texture);
+		}
+
+	}
+
+	return textures;
 }

@@ -13,6 +13,7 @@ public:
 
 private:
 
+	std::vector<Texture> texturesLoaded;
 	std::vector<ObjectMesh> meshes;
 	std::string directory;
 

@@ -160,6 +160,7 @@
     <ClInclude Include="src\Frontend\MainFrame.h" />
     <ClInclude Include="src\Renderer\Camera.h" />
     <ClInclude Include="src\Renderer\ObjectMesh.h" />
+    <ClInclude Include="src\Renderer\ObjectModel.h" />
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\ShaderLoader.h" />
     <ClInclude Include="src\stdafx.h" />
@@ -171,6 +172,7 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\Camera.cpp" />
     <ClCompile Include="src\Renderer\ObjectMesh.cpp" />
+    <ClCompile Include="src\Renderer\ObjectModel.cpp" />
     <ClCompile Include="src\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Renderer\ShaderLoader.cpp" />
     <ClCompile Include="src\stdafx.cpp">

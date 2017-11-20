@@ -44,8 +44,6 @@ Renderer::Renderer() {
 }
 
 void Renderer::startRenderer() {
-	Assimp::Importer importer;
-
 	ilInit();
 
 	if (!glfwInit()) {

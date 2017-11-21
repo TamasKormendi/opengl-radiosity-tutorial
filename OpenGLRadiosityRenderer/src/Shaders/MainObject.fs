@@ -23,6 +23,7 @@ struct PointLight {
 
 in vec3 fragPos;
 in vec3 normal;
+in vec2 textureCoord;
 
 uniform vec3 viewPos;
 uniform Material material;
@@ -30,7 +31,13 @@ uniform Material material;
 uniform int lightAmount;
 uniform PointLight pointLights[64];
 
+uniform sampler2D texture_diffuse1;
 
+void main() {    
+    fragColour = texture(texture_diffuse1, textureCoord);
+}
+
+/*
 vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir);
 
 
@@ -75,3 +82,4 @@ vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec
 
     return result;
 }
+*/

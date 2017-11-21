@@ -8,66 +8,33 @@
 #include <vector>
 #include <iostream>
 
-#include <assimp\Importer.hpp>
-#include <assimp\scene.h>
-#include <assimp\postprocess.h>
+#include <stb_image.h>
 
-#include <IL\il.h>
-
-#include <Renderer\ShaderLoader.h>
-#include <Renderer\ObjectMesh.h>
 #include <Renderer\ObjectModel.h>
 
-
-
-//Some additional code for this function from:
-//http://www.geeks3d.com/20090105/tutorial-how-to-load-and-display-an-image-with-devil-and-opengl/
-//and
-//http://www.lighthouse3d.com/cg-topics/code-samples/loading-an-image-and-creating-a-texture/
 unsigned int loadTexture(const char* path, const std::string& directory) {
 
-	//TODO: Refactor fullFilename because it looks a bit repulsive
-	std::string fullFilename = std::string(path);
-	
-	fullFilename = directory + '/' + fullFilename;
+	std::string filename = std::string(path);
+	filename = directory + '/' + filename;
 
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 
-	unsigned int imageID;
-	ILboolean success;
-
-	ilGenImages(1, &imageID);
-	ilBindImage(imageID);
-
-
-	//TODO: problems might arise here
-	ilEnable(IL_ORIGIN_SET);
-	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
-
-	success = ilLoadImage((ILstring)fullFilename.c_str());
-
-	if (!success) {
-		std::cout << "DevIL: Image failed to load. Path tried: " << path << std::endl;
-
-		ilDeleteImages(1, &imageID);
-		return 0;
-	}
-	else {
-		GLenum imageFormat;
-
-		switch (ilGetInteger(IL_IMAGE_FORMAT)) {
-		case IL_ALPHA:
-			imageFormat = GL_RED; ilConvertImage(IL_ALPHA, IL_UNSIGNED_BYTE); break;
-		case IL_RGB:
-			imageFormat = GL_RGB; ilConvertImage(IL_RGB, IL_UNSIGNED_BYTE); break;
-		//The default includes RGBA too
-		default:
-			imageFormat = GL_RGBA; ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE); break;
-		}
+	int width;
+	int height;
+	int nrComponents;
+	unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
+	if (data) {
+		GLenum format;
+		if (nrComponents == 1)
+			format = GL_RED;
+		else if (nrComponents == 3)
+			format = GL_RGB;
+		else if (nrComponents == 4)
+			format = GL_RGBA;
 
 		glBindTexture(GL_TEXTURE_2D, textureID);
-		glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT), 0, imageFormat, GL_UNSIGNED_BYTE, ilGetData());
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -75,7 +42,14 @@ unsigned int loadTexture(const char* path, const std::string& directory) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		ilDeleteImages(1, &imageID);
+		std::cout << "Texture loaded" << std::endl;
+
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Texture failed to load at path: " << path << std::endl;
+		stbi_image_free(data);
 	}
 
 	return textureID;
@@ -109,7 +83,7 @@ void ObjectModel::loadModel(const std::string& path) {
 }
 
 void ObjectModel::processNode(aiNode* node, const aiScene* scene) {
-	for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+	for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 
 		meshes.push_back(processMesh(mesh, scene));

@@ -1,6 +1,16 @@
 #ifndef OBJECTMODEL_H
 #define OBJECTMODEL_H
 
+//TODO: SORT OUT IMPORTS ASAP
+
+#include <assimp\Importer.hpp>
+#include <assimp\scene.h>
+#include <assimp\postprocess.h>
+
+#include <Renderer\ShaderLoader.h>
+
+#include <Renderer\ObjectMesh.h>
+
 //Don't call this function before ilInit() or you're not going going to have a good time
 unsigned int loadTexture(const char* path, const std::string& directory);
 

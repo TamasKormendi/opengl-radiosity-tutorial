@@ -12,12 +12,16 @@
 
 #include <OpenGLGlobalHeader.h>
 
-#include <IL\il.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include <assimp\Importer.hpp>
 
 #include <Renderer\Renderer.h>
 #include <Renderer\Camera.h>
 #include <Renderer\ShaderLoader.h>
+
+#include <Renderer\ObjectModel.h>
 
 
 const unsigned int SCREEN_WIDTH = 1280;
@@ -44,8 +48,6 @@ Renderer::Renderer() {
 }
 
 void Renderer::startRenderer() {
-	ilInit();
-
 	if (!glfwInit()) {
 		std::cout << "Failed to initialise GLFW" << std::endl;
 		return;
@@ -164,6 +166,8 @@ void Renderer::startRenderer() {
 	//Lamp position
 	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
 
+	ObjectModel mainModel("OBJECT PATH HERE");
+
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
 
@@ -219,10 +223,12 @@ void Renderer::startRenderer() {
 		mainShader.setUniformFloat("light.quadratic", 0.032f);*/
 
 		//Material properties, likely to be handled differently later (with Assimp?)
+		/*
 		mainShader.setUniformVec3("material.ambient", 0.0f, 1.0f, 0.0f);
 		mainShader.setUniformVec3("material.diffuse", 0.0f, 1.0f, 0.0f);
 		mainShader.setUniformVec3("material.specular", 0.5f, 0.5f, 0.5f);
 		mainShader.setUniformFloat("material.shininess", 32.0f);
+		*/
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
@@ -230,10 +236,13 @@ void Renderer::startRenderer() {
 		mainShader.setUniformMat4("view", view);
 
 		glm::mat4 model;
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
 		mainShader.setUniformMat4("model", model);
 
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		//glBindVertexArray(cubeVAO);
+		//glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		mainModel.draw(mainShader);
 
 		lampShader.useProgram();
 

@@ -11,7 +11,6 @@
 
 #include <Renderer\ObjectMesh.h>
 
-//Don't call this function before ilInit() or you're not going going to have a good time
 unsigned int loadTexture(const char* path, const std::string& directory);
 
 class ObjectModel {

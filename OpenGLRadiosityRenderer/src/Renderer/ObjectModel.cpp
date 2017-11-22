@@ -14,24 +14,27 @@
 
 unsigned int loadTexture(const char* path, const std::string& directory) {
 
-	std::string filename = std::string(path);
-	filename = directory + '/' + filename;
+	std::string fullFilepath = directory + '/' + std::string(path);
 
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 
 	int width;
 	int height;
-	int nrComponents;
-	unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
+	int numberOfComponents;
+	unsigned char *data = stbi_load(fullFilepath.c_str(), &width, &height, &numberOfComponents, 0);
 	if (data) {
 		GLenum format;
-		if (nrComponents == 1)
+		if (numberOfComponents == 1) {
 			format = GL_RED;
-		else if (nrComponents == 3)
+		}
+		else if (numberOfComponents == 3) {
 			format = GL_RGB;
-		else if (nrComponents == 4)
+
+		}
+		else if (numberOfComponents == 4) {
 			format = GL_RGBA;
+		}
 
 		glBindTexture(GL_TEXTURE_2D, textureID);
 		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
@@ -61,12 +64,6 @@ ObjectModel::ObjectModel(const std::string& path) {
 	loadModel(path);
 }
 
-void ObjectModel::draw(ShaderLoader& shaderLoader) {
-	for (ObjectMesh mesh : meshes) {
-		mesh.draw(shaderLoader);
-	}
-}
-
 void ObjectModel::loadModel(const std::string& path) {
 	Assimp::Importer importer;
 
@@ -81,6 +78,13 @@ void ObjectModel::loadModel(const std::string& path) {
 
 	processNode(scene->mRootNode, scene);
 }
+
+void ObjectModel::draw(ShaderLoader& shaderLoader) {
+	for (ObjectMesh mesh : meshes) {
+		mesh.draw(shaderLoader);
+	}
+}
+
 
 void ObjectModel::processNode(aiNode* node, const aiScene* scene) {
 	for (unsigned int i = 0; i < node->mNumMeshes; ++i) {

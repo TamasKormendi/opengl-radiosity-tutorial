@@ -32,12 +32,14 @@ uniform int lightAmount;
 uniform PointLight pointLights[64];
 
 uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_specular1;
 
+/*
 void main() {    
     fragColour = texture(texture_diffuse1, textureCoord);
 }
+*/
 
-/*
 vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir);
 
 
@@ -56,19 +58,20 @@ void main() {
 }
 
 vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir) {
-    vec3 ambient = light.ambient * material.diffuse;
+    vec3 ambient = light.ambient * texture(texture_diffuse1, textureCoord).rgb;
 
     vec3 lightDirection = normalize(light.position - fragPos);
 
     float diffuseAngle = max(dot(normalVec, lightDirection), 0.0);
-    vec3 diffuse = light.diffuse * diffuseAngle * material.diffuse;
+    vec3 diffuse = light.diffuse * diffuseAngle * texture(texture_diffuse1, textureCoord).rgb;
 
     vec3 reflectionDirection = reflect(-lightDirection, normalVec);
-    float specularAngle = pow(max(dot(viewDir, reflectionDirection), 0.0), material.shininess);
-    vec3 specular =  light.specular * specularAngle * material.specular;
+    float specularAngle = pow(max(dot(viewDir, reflectionDirection), 0.0), 1);
+    vec3 specular =  light.specular * specularAngle * texture(texture_specular1, textureCoord).rgb;
 
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    //float attenuation = 1.0;
 
     
     ambient *= attenuation;
@@ -76,10 +79,9 @@ vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec
     specular *= attenuation;
     
 
-    vec3 result =   //ambient + 
-                    diffuse + 
+    vec3 result =   ambient + 
+                    diffuse; 
                     specular;
 
     return result;
 }
-*/

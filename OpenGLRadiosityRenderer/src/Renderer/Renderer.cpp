@@ -15,7 +15,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <IL\il.h>
 #include <assimp\Importer.hpp>
 
 #include <Renderer\Renderer.h>
@@ -49,8 +48,6 @@ Renderer::Renderer() {
 }
 
 void Renderer::startRenderer() {
-	ilInit();
-
 	if (!glfwInit()) {
 		std::cout << "Failed to initialise GLFW" << std::endl;
 		return;

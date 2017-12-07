@@ -62,6 +62,52 @@ unsigned int loadTexture(const char* path, const std::string& directory) {
 
 ObjectModel::ObjectModel(const std::string& path) {
 	loadModel(path);
+
+	unsigned int vertexOffset = 0;
+
+	for (ObjectMesh mesh : meshes) {
+		allSceneVertices.insert(std::end(allSceneVertices), std::begin(mesh.vertices), std::end(mesh.vertices));
+
+		//allSceneIndices.insert(std::end(allSceneIndices), std::begin(mesh.indices), std::end(mesh.indices));
+
+		//We need to add the vertexOffset to indices because the indices start from 0 for every mesh
+		//So if we want to merge all of the meshes into one VAO/VBO/EBO then the indices have to be
+		//manipulated this way
+		for (unsigned int index : mesh.indices) {
+			allSceneIndices.push_back(index + vertexOffset);
+		}
+		
+		vertexOffset += mesh.vertices.size();
+	}
+
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glBufferData(GL_ARRAY_BUFFER, allSceneVertices.size() * sizeof(Vertex), &allSceneVertices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, allSceneIndices.size() * sizeof(unsigned int), &allSceneIndices[0], GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, textureCoords));
+
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
+
+	glBindVertexArray(0);
 }
 
 void ObjectModel::loadModel(const std::string& path) {
@@ -80,9 +126,27 @@ void ObjectModel::loadModel(const std::string& path) {
 }
 
 void ObjectModel::draw(ShaderLoader& shaderLoader) {
+	unsigned int offset = 0;
+
+
+	glBindVertexArray(VAO);
+
 	for (ObjectMesh mesh : meshes) {
+
 		mesh.draw(shaderLoader);
+
+		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, (GLvoid*)(sizeof(unsigned int) * offset));
+
+		glActiveTexture(GL_TEXTURE0);
+
+		offset += mesh.indices.size();
+		//++offset;
+
 	}
+
+	//glDrawElements(GL_TRIANGLES, allSceneIndices.size(), GL_UNSIGNED_INT, 0);
+
+	glBindVertexArray(0);
 }
 
 

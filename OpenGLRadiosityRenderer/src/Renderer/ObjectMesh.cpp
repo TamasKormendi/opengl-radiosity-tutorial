@@ -54,14 +54,14 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 		glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 	}
 
-	glBindVertexArray(VAO);
+	/*glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
 	glBindVertexArray(0);
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0);*/
 }
 void ObjectMesh::setupMesh() {
-	glGenVertexArrays(1, &VAO);
+	/*glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 
@@ -90,5 +90,5 @@ void ObjectMesh::setupMesh() {
 
 	std::cout << "VAO AMOUNT: " << meshAmount++ << std::endl;
 
-	glBindVertexArray(0);
+	glBindVertexArray(0);*/
 }

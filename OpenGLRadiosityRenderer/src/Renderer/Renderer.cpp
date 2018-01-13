@@ -10,7 +10,7 @@
 #include <vector>
 #include <string>
 
-#include <OpenGLGlobalHeader.h>
+//#include <OpenGLGlobalHeader.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -47,7 +47,7 @@ Renderer::Renderer() {
 
 }
 
-void Renderer::startRenderer() {
+void Renderer::startRenderer(std::string objectFilepath) {
 	if (!glfwInit()) {
 		std::cout << "Failed to initialise GLFW" << std::endl;
 		return;
@@ -166,7 +166,7 @@ void Renderer::startRenderer() {
 	//Lamp position
 	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
 
-	ObjectModel mainModel(" OBJECT PATH HERE ");
+	ObjectModel mainModel(objectFilepath);
 
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();

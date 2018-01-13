@@ -45,6 +45,12 @@ vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec
 
 void main() {
     //For now I just don't add the ambient term to the end result, see the "result" calculation
+    vec4 alphaTest = texture(texture_diffuse1, textureCoord);
+
+    if (alphaTest.a < 0.3) {
+        discard;
+    }
+
     vec3 normalisedNormal = normalize(normal);
     vec3 viewDirection = normalize(viewPos - fragPos);
 
@@ -79,8 +85,8 @@ vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec
     specular *= attenuation;
     
 
-    vec3 result =   ambient + 
-                    diffuse; 
+    vec3 result =   //ambient + 
+                    diffuse + 
                     specular;
 
     return result;

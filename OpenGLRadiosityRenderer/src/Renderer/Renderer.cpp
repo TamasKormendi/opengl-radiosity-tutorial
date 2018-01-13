@@ -166,7 +166,7 @@ void Renderer::startRenderer() {
 	//Lamp position
 	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
 
-	ObjectModel mainModel("OBJECT PATH HERE");
+	ObjectModel mainModel(" OBJECT PATH HERE ");
 
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
@@ -208,8 +208,8 @@ void Renderer::startRenderer() {
 			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].specular", 1.0f, 1.0f, 1.0f);
 
 			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].constant", 1.0f);
-			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].linear", 0.09f);
-			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.032f);
+			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].linear", 0.007f);
+			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.0002f);
 		}
 
 
@@ -254,7 +254,7 @@ void Renderer::startRenderer() {
 		for (int i = 0; i < lightLocations.size(); ++i) {
 			glm::mat4 lampModel = glm::mat4();
 
-			lampModel = glm::translate(lampModel, lightLocations.at(i));
+			lampModel = glm::translate(lampModel, lightLocations.at(i) / 5.0f);
 			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
 			//The uniform for the lamp's model is just "model"
 			lampShader.setUniformMat4("model", lampModel);
@@ -294,7 +294,7 @@ void Renderer::processInput(GLFWwindow* window) {
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		glm::vec3 cameraPosition = camera.position;
+		glm::vec3 cameraPosition = camera.position * 5.0f;
 
 		lightLocations.push_back(cameraPosition);
 	}

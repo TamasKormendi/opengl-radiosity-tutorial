@@ -22,9 +22,16 @@ public:
 
 private:
 
+	std::vector<Vertex> allSceneVertices;
+	std::vector<unsigned int> allSceneIndices;
+
 	std::vector<Texture> texturesLoaded;
 	std::vector<ObjectMesh> meshes;
 	std::string directory;
+
+	unsigned int VAO;
+	unsigned int VBO;
+	unsigned int EBO;
 
 	void loadModel(const std::string& path);
 

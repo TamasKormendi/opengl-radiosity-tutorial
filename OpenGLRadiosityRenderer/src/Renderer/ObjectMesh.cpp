@@ -6,12 +6,15 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 
 #include <assimp/Importer.hpp>
 
 #include <Renderer\ShaderLoader.h>
 #include <Renderer\ObjectMesh.h>
+
+long long int meshAmount = 0;
 
 ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures) {
 	this->vertices = vertices;
@@ -51,14 +54,14 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 		glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 	}
 
-	glBindVertexArray(VAO);
+	/*glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
 	glBindVertexArray(0);
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0);*/
 }
 void ObjectMesh::setupMesh() {
-	glGenVertexArrays(1, &VAO);
+	/*glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 
@@ -85,5 +88,7 @@ void ObjectMesh::setupMesh() {
 	glEnableVertexAttribArray(4);
 	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 
-	glBindVertexArray(0);
+	std::cout << "VAO AMOUNT: " << meshAmount++ << std::endl;
+
+	glBindVertexArray(0);*/
 }

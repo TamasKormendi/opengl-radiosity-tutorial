@@ -61,7 +61,7 @@ void Camera::processMouse(float xOffset, float yOffset, GLboolean constrainPitch
 			pitch = -89.0f;
 	}
 
-	// Update Front, Right and Up Vectors using the updated Eular angles
+	// Update Front, Right and Up Vectors using the updated Euler angles
 	updateCameraVectors();
 }
 

@@ -14,6 +14,8 @@ private:
 
 	std::string filepath;
 
+	wxTextCtrl* filepathBox;
+
 	void OnLaunchRenderer(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);

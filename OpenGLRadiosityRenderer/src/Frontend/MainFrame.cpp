@@ -57,7 +57,11 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 	//wxButton* startButton = new wxButton(this, ID_LAUNCH_RENDERER_BUTTON, _T("Launch Renderer"), 0, 0, 0);
 	//wxButton* quitButton = new wxButton(this, ID_QUIT_BUTTON, _T("Quit"), 0, 0, 0);
 
+	filepathBox = new wxTextCtrl(this, -1, "Please select a .obj file", wxDefaultPosition, wxSize(200, 20), wxTE_RICH | wxTE_CENTRE | wxTE_READONLY, wxDefaultValidator, wxTextCtrlNameStr);
+
 	sizer->Add(new wxButton(this, ID_LAUNCH_RENDERER_BUTTON, "Start renderer", wxDefaultPosition, wxSize(300, 25), 0), 0, wxALIGN_CENTER | wxALL, 10);
+
+	sizer->Add(filepathBox, 0, wxALIGN_CENTER | wxALL, 10);
 
 	sizer->Add(new wxButton(this, ID_FILESELECTOR_BUTTON, "Select object file"), 0, wxALIGN_CENTER | wxALL, 10);
 
@@ -101,6 +105,8 @@ void MainFrame::OpenFileSelector(wxCommandEvent& WXUNUSED(event)) {
 		std::replace(filepath.begin(), filepath.end(), '\\', '/');
 
 		std::cout << filepath << std::endl;
+
+		filepathBox->ChangeValue(filepath);
 	}
 
 	OpenDialog->Destroy();

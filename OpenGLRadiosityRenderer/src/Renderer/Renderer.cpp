@@ -242,7 +242,11 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		//glBindVertexArray(cubeVAO);
 		//glDrawArrays(GL_TRIANGLES, 0, 36);
 
+		glEnable(GL_CULL_FACE);
+
 		mainModel.draw(mainShader);
+
+		glDisable(GL_CULL_FACE);
 
 		lampShader.useProgram();
 

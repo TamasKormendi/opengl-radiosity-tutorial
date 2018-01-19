@@ -236,7 +236,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		mainShader.setUniformMat4("view", view);
 
 		glm::mat4 model;
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		mainShader.setUniformMat4("model", model);
 
 		//glBindVertexArray(cubeVAO);
@@ -254,7 +254,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		for (int i = 0; i < lightLocations.size(); ++i) {
 			glm::mat4 lampModel = glm::mat4();
 
-			lampModel = glm::translate(lampModel, lightLocations.at(i) / 5.0f);
+			lampModel = glm::translate(lampModel, lightLocations.at(i));
 			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
 			//The uniform for the lamp's model is just "model"
 			lampShader.setUniformMat4("model", lampModel);
@@ -294,7 +294,7 @@ void Renderer::processInput(GLFWwindow* window) {
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		glm::vec3 cameraPosition = camera.position * 5.0f;
+		glm::vec3 cameraPosition = camera.position;
 
 		lightLocations.push_back(cameraPosition);
 	}

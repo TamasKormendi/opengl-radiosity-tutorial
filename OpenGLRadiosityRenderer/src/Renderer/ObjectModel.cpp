@@ -14,6 +14,8 @@
 
 unsigned int loadTexture(const char* path, const std::string& directory) {
 
+	stbi_set_flip_vertically_on_load(true);
+
 	std::string fullFilepath = directory + '/' + std::string(path);
 
 	unsigned int textureID;
@@ -113,7 +115,7 @@ ObjectModel::ObjectModel(const std::string& path) {
 void ObjectModel::loadModel(const std::string& path) {
 	Assimp::Importer importer;
 
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcessPreset_TargetRealtime_MaxQuality);
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cout << "ASSIMP ERROR: " << importer.GetErrorString() << std::endl;

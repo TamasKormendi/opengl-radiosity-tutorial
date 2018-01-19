@@ -19,5 +19,5 @@ void main() {
 
     textureCoord = inTextureCoord;
 
-    gl_Position = projection * view * model * vec4(fragPos, 1.0);
+    gl_Position = projection * view * vec4(fragPos, 1.0);
 }

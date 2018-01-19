@@ -86,8 +86,8 @@ vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec
     
 
     vec3 result =   //ambient + 
-                    diffuse + 
-                    specular;
+                    diffuse; 
+                    //specular;
 
     return result;
 }

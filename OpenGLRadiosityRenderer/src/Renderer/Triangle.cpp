@@ -6,7 +6,7 @@
 
 int Triangle::integerID = 1;
 
-Triangle::Triangle(Vertex& v1, Vertex& v2, Vertex& v3) {
+Triangle::Triangle(Vertex v1, Vertex v2, Vertex v3) {
 	vertex1 = v1;
 	vertex2 = v2;
 	vertex3 = v3;

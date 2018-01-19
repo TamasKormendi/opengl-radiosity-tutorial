@@ -11,18 +11,10 @@
 #include <assimp/Importer.hpp>
 
 #include <Renderer\ShaderLoader.h>
-#include <Renderer\ObjectMesh.h>
 
-struct Vertex {
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec2 textureCoords;
+#include <Renderer\Vertex.h>
+#include <Renderer\Triangle.h>
 
-	glm::vec3 rgbID;
-
-	glm::vec3 tangent;
-	glm::vec3 bitangent;
-};
 
 struct Texture {
 	unsigned int ID;
@@ -36,6 +28,9 @@ public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
+
+	std::vector<Triangle> triangles;
+	std::vector<Vertex> unwrappedVertices;
 
 	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
 	void draw(ShaderLoader& shaderLoader);

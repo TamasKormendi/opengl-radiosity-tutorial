@@ -65,6 +65,8 @@ unsigned int loadTexture(const char* path, const std::string& directory) {
 ObjectModel::ObjectModel(const std::string& path) {
 	loadModel(path);
 
+	//We are not actually going to need this code, most likely;
+	/*
 	unsigned int vertexOffset = 0;
 
 	for (ObjectMesh mesh : meshes) {
@@ -110,6 +112,7 @@ ObjectModel::ObjectModel(const std::string& path) {
 	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 
 	glBindVertexArray(0);
+	*/
 }
 
 void ObjectModel::loadModel(const std::string& path) {
@@ -128,6 +131,13 @@ void ObjectModel::loadModel(const std::string& path) {
 }
 
 void ObjectModel::draw(ShaderLoader& shaderLoader) {
+	for (int i = 0; i < meshes.size(); ++i) {
+		meshes[i].draw(shaderLoader);
+	}
+
+
+	//We are unlikely to need this since we are back to per-mesh drawing
+	/*
 	unsigned int offset = 0;
 
 
@@ -146,9 +156,10 @@ void ObjectModel::draw(ShaderLoader& shaderLoader) {
 
 	}
 
-	//glDrawElements(GL_TRIANGLES, allSceneIndices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, allSceneIndices.size(), GL_UNSIGNED_INT, 0);
 
 	glBindVertexArray(0);
+	*/
 }
 
 

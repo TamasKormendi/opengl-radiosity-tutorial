@@ -54,24 +54,36 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 		glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 	}
 
-	/*glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, unwrappedVertices.size());
 
 	glBindVertexArray(0);
-	glActiveTexture(GL_TEXTURE0);*/
+	glActiveTexture(GL_TEXTURE0);
 }
 void ObjectMesh::setupMesh() {
-	/*glGenVertexArrays(1, &VAO);
+	for (unsigned int i = 0; i < indices.size(); i += 3) {
+		Triangle triangle(vertices[i], vertices[i + 1], vertices[i + 2]);
+
+		triangles.push_back(triangle);
+	}
+
+	for (Triangle triangle : triangles) {
+		unwrappedVertices.push_back(triangle.vertex1);
+		unwrappedVertices.push_back(triangle.vertex2);
+		unwrappedVertices.push_back(triangle.vertex3);
+	}
+
+	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, unwrappedVertices.size() * sizeof(Vertex), &unwrappedVertices[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
@@ -88,7 +100,7 @@ void ObjectMesh::setupMesh() {
 	glEnableVertexAttribArray(4);
 	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
 
-	std::cout << "VAO AMOUNT: " << meshAmount++ << std::endl;
+	//std::cout << "VAO AMOUNT: " << meshAmount++ << std::endl;
 
-	glBindVertexArray(0);*/
+	glBindVertexArray(0);
 }

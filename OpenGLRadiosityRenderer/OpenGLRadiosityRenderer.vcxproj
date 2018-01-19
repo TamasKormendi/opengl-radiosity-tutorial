@@ -164,6 +164,7 @@
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\ShaderLoader.h" />
     <ClInclude Include="src\Renderer\Triangle.h" />
+    <ClInclude Include="src\Renderer\Vertex.h" />
     <ClInclude Include="src\stdafx.h" />
     <ClInclude Include="src\targetver.h" />
   </ItemGroup>

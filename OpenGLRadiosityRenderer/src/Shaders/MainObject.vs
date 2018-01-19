@@ -25,7 +25,7 @@ void main() {
 
     gl_Position = projection * view * vec4(fragPos, 1.0);
 
-    vec2 textSpace = (inTextureCoord - 0.5) * 2;
+    //vec2 textSpace = (inTextureCoord - 0.5) * 2;
 
-    gl_Position = vec4(textSpace.x, textSpace.y, 0.5, 1.0);
+    //gl_Position = vec4(textSpace.x, textSpace.y, 0.5, 1.0);
 }

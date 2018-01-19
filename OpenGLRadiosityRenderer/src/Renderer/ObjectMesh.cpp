@@ -61,8 +61,10 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 	glActiveTexture(GL_TEXTURE0);
 }
 void ObjectMesh::setupMesh() {
+
 	for (unsigned int i = 0; i < indices.size(); i += 3) {
-		Triangle triangle(vertices[i], vertices[i + 1], vertices[i + 2]);
+
+		Triangle triangle(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]);
 
 		triangles.push_back(triangle);
 	}

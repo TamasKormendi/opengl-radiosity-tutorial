@@ -12,9 +12,14 @@ private:
 
 	std::unique_ptr<Renderer> renderer;
 
+	std::string filepath;
+
+	wxTextCtrl* filepathBox;
+
 	void OnLaunchRenderer(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
+	void OpenFileSelector(wxCommandEvent& WXUNUSED(event));
 
 	wxDECLARE_EVENT_TABLE();
 };

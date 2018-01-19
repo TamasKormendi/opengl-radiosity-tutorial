@@ -24,6 +24,7 @@ struct PointLight {
 in vec3 fragPos;
 in vec3 normal;
 in vec2 textureCoord;
+in vec3 ID;
 
 uniform vec3 viewPos;
 uniform Material material;
@@ -60,7 +61,7 @@ void main() {
         result += calculatePointLight(pointLights[i], normalisedNormal, fragPos, viewDirection);
     }
 
-    fragColour = vec4(result, 1.0);
+    fragColour = vec4(ID, 1.0);
 }
 
 vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir) {

@@ -240,8 +240,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		*/
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 		mainShader.setUniformMat4("projection", projection);
+		mainShader.setUniformMat4("ortho", ortho);
 		mainShader.setUniformMat4("view", view);
 
 		glm::mat4 model;

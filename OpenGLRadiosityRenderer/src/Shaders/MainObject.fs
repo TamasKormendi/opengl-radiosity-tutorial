@@ -69,7 +69,7 @@ void main() {
         result += ambient;
     }
 
-    fragColour = vec4(result, 1.0);
+    fragColour = vec4(ID, 1.0);
 }
 
 vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir) {

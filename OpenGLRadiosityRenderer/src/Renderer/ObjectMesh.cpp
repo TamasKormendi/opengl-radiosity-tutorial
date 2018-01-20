@@ -16,10 +16,12 @@
 
 long long int meshAmount = 0;
 
-ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures) {
+ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp) {
 	this->vertices = vertices;
 	this->indices = indices;
 	this->textures = textures;
+
+	this->isLamp = isLamp;
 
 	setupMesh();
 }

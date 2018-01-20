@@ -42,6 +42,8 @@ float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
 
 std::vector<glm::vec3> lightLocations = std::vector<glm::vec3>();
+bool addLampMesh = false;
+bool addAmbient = false;
 
 Renderer::Renderer() {
 
@@ -166,7 +168,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	//Lamp position
 	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
 
-	ObjectModel mainModel(objectFilepath);
+	ObjectModel mainModel(objectFilepath, false);
+	ObjectModel lampModel("../assets/lamp.obj", true);
 
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
@@ -190,6 +193,12 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		}
 
 		processInput(window);
+
+		if (addLampMesh) {
+			mainModel.addMesh(lampModel.meshes[0]);
+
+			addLampMesh = !addLampMesh;
+		}
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -239,11 +248,41 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		mainShader.setUniformMat4("model", model);
 
+		mainShader.setUniformBool("addAmbient", addAmbient);
+
 		//glBindVertexArray(cubeVAO);
 		//glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glEnable(GL_CULL_FACE);
 
+		int lampCounter = 0;
+
+		for (unsigned int i = 0; i < mainModel.meshes.size(); ++i) {
+			if (mainModel.meshes[i].isLamp) {
+				lampShader.useProgram();
+
+				lampShader.setUniformMat4("projection", projection);
+				lampShader.setUniformMat4("view", view);
+
+				glm::mat4 lampModel = glm::mat4();
+
+				lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+				lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+				//The uniform for the lamp's model is just "model"
+				lampShader.setUniformMat4("model", lampModel);
+
+				mainModel.meshes[i].draw(lampShader);
+
+				++lampCounter;
+			}
+			else {
+				mainShader.useProgram();
+
+				mainModel.meshes[i].draw(mainShader);
+			}
+		}
+
+		/*
 		mainModel.draw(mainShader);
 
 		glDisable(GL_CULL_FACE);
@@ -264,7 +303,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			lampShader.setUniformMat4("model", lampModel);
 
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		}*/
 
 		
 		glfwSwapBuffers(window);
@@ -294,6 +333,12 @@ void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		ShaderLoader::reloadShaders();
 	}
+	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS) {
+		addAmbient = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+		addAmbient = false;
+	}
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
@@ -301,6 +346,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		glm::vec3 cameraPosition = camera.position;
 
 		lightLocations.push_back(cameraPosition);
+
+		//In the main render loop adds one lamp mesh to the mainObject
+		addLampMesh = true;
 	}
 }
 

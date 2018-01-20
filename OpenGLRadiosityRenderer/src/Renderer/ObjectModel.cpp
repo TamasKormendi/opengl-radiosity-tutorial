@@ -62,7 +62,9 @@ unsigned int loadTexture(const char* path, const std::string& directory) {
 
 
 
-ObjectModel::ObjectModel(const std::string& path) {
+ObjectModel::ObjectModel(const std::string& path, bool isLamp) {
+	this->isLamp = isLamp;
+
 	loadModel(path);
 
 	//We are not actually going to need this code, most likely;
@@ -256,7 +258,7 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-	return ObjectMesh(vertices, indices, textures);
+	return ObjectMesh(vertices, indices, textures, isLamp);
 }
 
 
@@ -289,4 +291,9 @@ std::vector<Texture> ObjectModel::loadMaterialTextures(aiMaterial* material, aiT
 	}
 
 	return textures;
+}
+
+//Used for adding lamp objects
+void ObjectModel::addMesh(ObjectMesh mesh) {
+	meshes.push_back(mesh);
 }

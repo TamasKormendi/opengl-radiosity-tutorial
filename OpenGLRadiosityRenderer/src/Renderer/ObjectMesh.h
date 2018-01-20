@@ -32,7 +32,9 @@ public:
 	std::vector<Triangle> triangles;
 	std::vector<Vertex> unwrappedVertices;
 
-	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
+	bool isLamp;
+
+	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp);
 	void draw(ShaderLoader& shaderLoader);
 
 private:

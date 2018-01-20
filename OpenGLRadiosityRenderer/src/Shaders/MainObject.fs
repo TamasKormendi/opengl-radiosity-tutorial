@@ -35,6 +35,8 @@ uniform PointLight pointLights[64];
 uniform sampler2D texture_diffuse1;
 uniform sampler2D texture_specular1;
 
+uniform int addAmbient;
+
 /*
 void main() {    
     fragColour = texture(texture_diffuse1, textureCoord);
@@ -59,6 +61,12 @@ void main() {
 
     for (int i = 0; i < lightAmount; ++i) {
         result += calculatePointLight(pointLights[i], normalisedNormal, fragPos, viewDirection);
+    }
+
+    vec3 ambient = vec3(0.2, 0.2, 0.2) * texture(texture_diffuse1, textureCoord).rgb;
+
+    if (addAmbient == 1) {
+        result += ambient;
     }
 
     fragColour = vec4(result, 1.0);

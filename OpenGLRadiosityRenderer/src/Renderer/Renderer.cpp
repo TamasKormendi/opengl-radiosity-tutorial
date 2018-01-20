@@ -88,86 +88,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
 
-	float vertices[] = {
-		// positions          // normals           // texture coords
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
-	};
-
-	unsigned int cubeVBO;
-	unsigned int cubeVAO;
-
-	glGenVertexArrays(1, &cubeVAO);
-	glGenBuffers(1, &cubeVBO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindVertexArray(cubeVAO);
-
-	//vertexPos
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	//normal
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	//textureCoords
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	//Lamp
-	unsigned int lampVAO;
-	glGenVertexArrays(1, &lampVAO);
-	glBindVertexArray(lampVAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	//Lamp position
-	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
-
 	ObjectModel mainModel(objectFilepath, false);
 	ObjectModel lampModel("../assets/lamp.obj", true);
 
@@ -221,24 +141,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.0002f);
 		}
 
-
-		/*mainShader.setUniformVec3("light.position", lampPos);
-	
-		mainShader.setUniformVec3("light.ambient", 0.1f, 0.1f, 0.1f);
-		mainShader.setUniformVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
-		mainShader.setUniformVec3("light.specular", 1.0f, 1.0f, 1.0f);
-		mainShader.setUniformFloat("light.constant", 1.0f);
-		mainShader.setUniformFloat("light.linear", 0.09f);
-		mainShader.setUniformFloat("light.quadratic", 0.032f);*/
-
-		//Material properties, likely to be handled differently later (with Assimp?)
-		/*
-		mainShader.setUniformVec3("material.ambient", 0.0f, 1.0f, 0.0f);
-		mainShader.setUniformVec3("material.diffuse", 0.0f, 1.0f, 0.0f);
-		mainShader.setUniformVec3("material.specular", 0.5f, 0.5f, 0.5f);
-		mainShader.setUniformFloat("material.shininess", 32.0f);
-		*/
-
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
@@ -251,9 +153,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		mainShader.setUniformMat4("model", model);
 
 		mainShader.setUniformBool("addAmbient", addAmbient);
-
-		//glBindVertexArray(cubeVAO);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glEnable(GL_CULL_FACE);
 
@@ -283,30 +182,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				mainModel.meshes[i].draw(mainShader);
 			}
 		}
-
-		/*
-		mainModel.draw(mainShader);
-
-		glDisable(GL_CULL_FACE);
-
-		lampShader.useProgram();
-
-		lampShader.setUniformMat4("projection", projection);
-		lampShader.setUniformMat4("view", view);
-
-		glBindVertexArray(lampVAO);
-
-		for (int i = 0; i < lightLocations.size(); ++i) {
-			glm::mat4 lampModel = glm::mat4();
-
-			lampModel = glm::translate(lampModel, lightLocations.at(i));
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
-			//The uniform for the lamp's model is just "model"
-			lampShader.setUniformMat4("model", lampModel);
-
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}*/
-
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();

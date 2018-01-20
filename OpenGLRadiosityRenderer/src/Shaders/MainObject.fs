@@ -69,7 +69,20 @@ void main() {
         result += ambient;
     }
 
-    fragColour = vec4(ID, 1.0);
+    //Diffuse colour clamping, alphaTest is just the diffuse colour
+    /*
+    if (result.x > alphaTest.x) {
+        result.x = alphaTest.x;
+    }
+    if (result.y > alphaTest.y) {
+        result.y = alphaTest.y;
+    }
+    if (result.z > alphaTest.z) {
+        result.z = alphaTest.z;
+    }
+    */
+
+    fragColour = vec4(result, 1.0);
 }
 
 vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec3 viewDir) {

@@ -32,6 +32,9 @@ public:
 	std::vector<Triangle> triangles;
 	std::vector<Vertex> unwrappedVertices;
 
+	std::vector<GLfloat> irradianceData;
+	std::vector<GLfloat> radianceData;
+
 	bool isLamp;
 
 	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp);

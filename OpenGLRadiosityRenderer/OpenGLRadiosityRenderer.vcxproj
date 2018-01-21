@@ -161,6 +161,7 @@
     <ClInclude Include="src\Renderer\Camera.h" />
     <ClInclude Include="src\Renderer\ObjectMesh.h" />
     <ClInclude Include="src\Renderer\ObjectModel.h" />
+    <ClInclude Include="src\Renderer\RadiosityConfig.h" />
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\ShaderLoader.h" />
     <ClInclude Include="src\Renderer\Triangle.h" />

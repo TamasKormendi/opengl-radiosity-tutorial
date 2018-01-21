@@ -14,6 +14,8 @@
 #include <Renderer\ShaderLoader.h>
 #include <Renderer\ObjectMesh.h>
 
+#include <Renderer\RadiosityConfig.h>
+
 long long int meshAmount = 0;
 
 ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp) {
@@ -22,6 +24,15 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 	this->textures = textures;
 
 	this->isLamp = isLamp;
+
+	if (isLamp) {
+		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 1.0f);
+		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 1.0f);
+	}
+	else {
+		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 0.0f);
+		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 0.0f);
+	}
 
 	setupMesh();
 }
@@ -33,8 +44,9 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 	unsigned int normalNumber = 0;
 	unsigned int heightNumber = 0;
 
+	
 	for (unsigned int i = 0; i < textures.size(); ++i) {
-		glActiveTexture(GL_TEXTURE0 + i);
+		glActiveTexture(GL_TEXTURE2 + i);
 
 		std::string number;
 		std::string name = textures[i].type;
@@ -52,7 +64,7 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 			number = std::to_string(heightNumber++);
 		}
 
-		shaderLoader.setUniformInt((name + number).c_str(), i);
+		shaderLoader.setUniformInt((name + number).c_str(), i + 2);
 		glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 	}
 

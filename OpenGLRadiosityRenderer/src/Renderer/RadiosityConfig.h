@@ -1,0 +1,6 @@
+#ifndef RADIOSITYCONFIG_H
+#define RADIOSITYCONFIG_H
+
+const int RADIOSITY_TEXTURE_SIZE = 512;
+
+#endif

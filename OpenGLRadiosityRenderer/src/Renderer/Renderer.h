@@ -3,6 +3,8 @@
 
 #include <OpenGLGlobalHeader.h>
 
+#include <Renderer\ObjectModel.h>
+
 
 class Renderer {
 public:
@@ -12,6 +14,8 @@ public:
 
 private:
 	void processInput(GLFWwindow* window);
+
+	void preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix);
 };
 
 #endif

@@ -21,8 +21,6 @@
 #include <Renderer\Camera.h>
 #include <Renderer\ShaderLoader.h>
 
-#include <Renderer\ObjectModel.h>
-
 #include <Renderer\RadiosityConfig.h>
 
 
@@ -46,6 +44,9 @@ float lastFrameTime = 0.0f;
 std::vector<glm::vec3> lightLocations = std::vector<glm::vec3>();
 bool addLampMesh = false;
 bool addAmbient = false;
+
+//TODO: Change this to a sensible ENUM
+unsigned int preprocessDone = 0;
 
 Renderer::Renderer() {
 
@@ -89,6 +90,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
+	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
 
 	ObjectModel mainModel(objectFilepath, false);
 	ObjectModel lampModel("../assets/lamp.obj", true);
@@ -157,6 +159,13 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		mainShader.setUniformBool("addAmbient", addAmbient);
 
 		glEnable(GL_CULL_FACE);
+
+		if (preprocessDone == 1) {
+
+			preprocess(mainModel, preprocessShader, model);
+
+			++preprocessDone;
+		}
 
 		int lampCounter = 0;
 
@@ -227,6 +236,81 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 }
 
+
+//This function will be called automatically before the scene starts rendering eventually so preprocessing can be done before the rendering
+//Current issues:
+//Light placement (have to know the location of the light when doing processing, can be split into 2 parts - preprocess most of the scene and process lights at creation)
+//It is somewhat untested
+void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix) {
+	unsigned int preprocessFramebuffer;
+
+	glGenFramebuffers(1, &preprocessFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, preprocessFramebuffer);
+
+	unsigned int worldspacePosData;
+	unsigned int worldspaceNormalData;
+
+	unsigned int idData;
+	unsigned int uvData;
+
+	//Create texture to hold worldspace-position data
+	glGenTextures(1, &worldspacePosData);
+	glBindTexture(GL_TEXTURE_2D, worldspacePosData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, worldspacePosData, 0);
+
+	//Create texture to hold worldspace-normal data
+	glGenTextures(1, &worldspaceNormalData);
+	glBindTexture(GL_TEXTURE_2D, worldspaceNormalData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, worldspaceNormalData, 0);
+
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, RADIOSITY_TEXTURE_SIZE);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(2, attachments);
+
+	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	shader.useProgram();
+
+	shader.setUniformMat4("model", mainObjectModelMatrix);
+
+	model.meshes[6].draw(shader);
+
+	std::vector<GLfloat> normalVectorDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+
+	glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
+
+	/*
+	std::cout << normalVectorDataBuffer[1533];
+	std::cout << normalVectorDataBuffer[1534];
+	std::cout << normalVectorDataBuffer[1535] << std::endl;
+	*/
+	
+
+
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -251,6 +335,11 @@ void Renderer::processInput(GLFWwindow* window) {
 	}
 	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
 		addAmbient = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+		if (preprocessDone == 0) {
+			++preprocessDone;
+		}
 	}
 }
 

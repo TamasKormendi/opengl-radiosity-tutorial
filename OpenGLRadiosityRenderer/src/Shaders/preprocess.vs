@@ -20,6 +20,7 @@ void main() {
 
     ID = inID;
 
+    //The texture coordinates are originally in [0-1], we need to make them [-1, 1]
     vec2 textureSpace = (inTextureCoord - 0.5) * 2;
 
     gl_Position = vec4(textureSpace.x, textureSpace.y, 0.5, 1.0);

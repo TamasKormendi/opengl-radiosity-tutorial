@@ -35,6 +35,11 @@ public:
 	std::vector<GLfloat> irradianceData;
 	std::vector<GLfloat> radianceData;
 
+	std::vector<GLfloat> worldspacePosData;
+	std::vector<GLfloat> worldspaceNormalData;
+	std::vector<GLfloat> idData;
+	std::vector<GLfloat> uvData;
+
 	bool isLamp;
 
 	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp);

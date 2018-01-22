@@ -26,13 +26,19 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 	this->isLamp = isLamp;
 
 	if (isLamp) {
-		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 1.0f);
-		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 1.0f);
+		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
+		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
 	}
 	else {
-		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 0.0f);
-		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE, 0.0f);
+		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
+		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
 	}
+
+	worldspacePosData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
+	worldspaceNormalData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
+
+	idData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
+	uvData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
 
 	setupMesh();
 }
@@ -46,6 +52,7 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 
 	
 	for (unsigned int i = 0; i < textures.size(); ++i) {
+		//We start the texture units from 2 since we leave the first two for the ir/radiance textures
 		glActiveTexture(GL_TEXTURE2 + i);
 
 		std::string number;
@@ -64,6 +71,7 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 			number = std::to_string(heightNumber++);
 		}
 
+		//See above
 		shaderLoader.setUniformInt((name + number).c_str(), i + 2);
 		glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 	}
@@ -82,6 +90,10 @@ void ObjectMesh::setupMesh() {
 
 		triangles.push_back(triangle);
 	}
+
+	//These can be uncommented to reset (and thus not store) the original vertex and index data if they are not needed
+	//vertices = std::vector<Vertex>();
+	//indices = std::vector<unsigned int>();
 
 	for (Triangle triangle : triangles) {
 		unwrappedVertices.push_back(triangle.vertex1);

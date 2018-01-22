@@ -35,6 +35,8 @@ uniform PointLight pointLights[64];
 uniform sampler2D texture_diffuse0;
 uniform sampler2D texture_specular0;
 
+uniform sampler2D irradianceTexture;
+
 uniform int addAmbient;
 
 /*
@@ -49,7 +51,9 @@ vec3 calculatePointLight(PointLight light, vec3 normalVec, vec3 fragmentPos, vec
 void main() {
     //For now I just don't add the ambient term to the end result, see the "result" calculation
     vec4 alphaTest = texture(texture_diffuse0, textureCoord);
-    vec3 specular = texture(texture_specular0, textureCoord).rgb;
+    //vec3 irradiance = texture(irradianceTexture, textureCoord).rgb;
+
+    //vec3 testRadiance = texture(irradianceTexture, textureCoord).rgb * texture(texture_diffuse0, textureCoord).rgb;
 
     if (alphaTest.a < 0.3) {
         discard;

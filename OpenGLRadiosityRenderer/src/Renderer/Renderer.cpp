@@ -23,6 +23,8 @@
 
 #include <Renderer\ObjectModel.h>
 
+#include <Renderer\RadiosityConfig.h>
+
 
 const unsigned int SCREEN_WIDTH = 1280;
 const unsigned int SCREEN_HEIGHT = 720;
@@ -172,14 +174,48 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//The uniform for the lamp's model is just "model"
 				lampShader.setUniformMat4("model", lampModel);
 
+				/*
+				unsigned int irradianceID;
+				glGenTextures(1, &irradianceID);
+
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+				glActiveTexture(GL_TEXTURE0);
+				lampShader.setUniformInt("irradianceTexture", 0);
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				*/
+
 				mainModel.meshes[i].draw(lampShader);
+
+				//glDeleteTextures(1, &irradianceID);
 
 				++lampCounter;
 			}
 			else {
 				mainShader.useProgram();
 
+				/*
+				unsigned int irradianceID;
+				glGenTextures(1, &irradianceID);
+
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+				glActiveTexture(GL_TEXTURE0);
+				mainShader.setUniformInt("irradianceTexture", 0);
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				*/
+
 				mainModel.meshes[i].draw(mainShader);
+
+				//glDeleteTextures(1, &irradianceID);
 			}
 		}
 		

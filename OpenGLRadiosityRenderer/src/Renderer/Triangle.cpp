@@ -4,6 +4,7 @@
 
 #include <Renderer\Triangle.h>
 
+//We start the ID from 0 so no completely black triangles can exist
 int Triangle::integerID = 1;
 
 Triangle::Triangle(Vertex v1, Vertex v2, Vertex v3) {

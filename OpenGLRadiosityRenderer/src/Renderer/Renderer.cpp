@@ -45,6 +45,8 @@ std::vector<glm::vec3> lightLocations = std::vector<glm::vec3>();
 bool addLampMesh = false;
 bool addAmbient = false;
 
+bool doRadiosityIteration = false;
+
 //TODO: Change this to a sensible ENUM
 unsigned int preprocessDone = 0;
 
@@ -168,8 +170,28 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
 			std::cout << mainModel.meshes[7].uvData[1535] << std::endl;*/
 
+			//This is needed so preprocess can only be done once
 			++preprocessDone;
 		}
+
+		glm::vec3 shooterRadiance;
+		glm::vec3 shooterWorldspacePos;
+		glm::vec3 shooterWorldspaceNormal;
+		glm::vec2 shooterUV;
+		int shooterMeshIndex;
+
+		if (doRadiosityIteration) {
+
+			selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
+
+			std::cout << shooterUV.x << std::endl;
+			std::cout << shooterUV.y << std::endl;
+			//std::cout << shooterUV.z << std::endl;
+
+			doRadiosityIteration = false;
+		}
+
+		
 
 		int lampCounter = 0;
 
@@ -368,6 +390,51 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+
+//Only to be called after the preprocess function
+//Do note that this function is incredibly slow - in a final version this functionality would be optimally handled on the GPU but for now, this is sufficient
+void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, int& shooterMeshIndex) {
+	float maxLuminance = 0.0f;
+
+	//Loop through every mesh
+	for (int i = 0; i < model.meshes.size(); ++i) {
+
+		//Loop through every RGB pixel of the radiance map
+		for (int j = 0; j < model.meshes[i].radianceData.size(); j += 3) {
+
+			float redValue = model.meshes[i].radianceData[j];
+			float greenValue = model.meshes[i].radianceData[j + 1];
+			float blueValue = model.meshes[i].radianceData[j + 2];
+
+			//Calculcate pixel luminance
+			float currentLuminance = 0.21 * redValue + 0.39 * greenValue + 0.4 * blueValue;
+
+			if (currentLuminance > maxLuminance) {
+				float redIDValue = model.meshes[i].idData[j];
+				float greenIDValue = model.meshes[i].idData[j + 1];
+				float blueIDValue = model.meshes[i].idData[j + 2];
+
+				float idSum = redIDValue + greenIDValue + blueIDValue;
+
+				//Check if pixel maps to a triangle
+				if (idSum > 0) {
+					shooterRadiance = glm::vec3(model.meshes[i].radianceData[j], model.meshes[i].radianceData[j + 1], model.meshes[i].radianceData[j + 2]);
+
+					shooterWorldspacePos = glm::vec3(model.meshes[i].worldspacePosData[j], model.meshes[i].worldspacePosData[j + 1], model.meshes[i].worldspacePosData[j + 2]);
+					shooterWorldspaceNormal = glm::vec3(model.meshes[i].worldspaceNormalData[j], model.meshes[i].worldspaceNormalData[j + 1], model.meshes[i].worldspaceNormalData[j + 2]);
+
+					shooterUV = glm::vec3(model.meshes[i].uvData[j], model.meshes[i].uvData[j + 1], model.meshes[i].uvData[j + 2]);
+
+					shooterMeshIndex = i;
+
+
+					maxLuminance = currentLuminance;
+				}
+			}
+		}
+	}
+}
+
 void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -408,6 +475,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 		//In the main render loop adds one lamp mesh to the mainObject
 		addLampMesh = true;
+	}
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		doRadiosityIteration = true;
 	}
 }
 

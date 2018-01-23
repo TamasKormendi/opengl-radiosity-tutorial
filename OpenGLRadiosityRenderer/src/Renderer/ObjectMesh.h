@@ -1,14 +1,20 @@
 #ifndef OBJECTMESH_H
 #define OBJECTMESH_H
 
-struct Vertex {
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec2 textureCoords;
+#include <OpenGLGlobalHeader.h>
 
-	glm::vec3 tangent;
-	glm::vec3 bitangent;
-};
+#include <string>
+#include <vector>
+#include <iostream>
+
+
+#include <assimp/Importer.hpp>
+
+#include <Renderer\ShaderLoader.h>
+
+#include <Renderer\Vertex.h>
+#include <Renderer\Triangle.h>
+
 
 struct Texture {
 	unsigned int ID;
@@ -23,7 +29,20 @@ public:
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 
-	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
+	std::vector<Triangle> triangles;
+	std::vector<Vertex> unwrappedVertices;
+
+	std::vector<GLfloat> irradianceData;
+	std::vector<GLfloat> radianceData;
+
+	std::vector<GLfloat> worldspacePosData;
+	std::vector<GLfloat> worldspaceNormalData;
+	std::vector<GLfloat> idData;
+	std::vector<GLfloat> uvData;
+
+	bool isLamp;
+
+	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp);
 	void draw(ShaderLoader& shaderLoader);
 
 private:

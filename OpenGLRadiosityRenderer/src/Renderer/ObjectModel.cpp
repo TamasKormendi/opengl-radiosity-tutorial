@@ -14,6 +14,8 @@
 
 unsigned int loadTexture(const char* path, const std::string& directory) {
 
+	stbi_set_flip_vertically_on_load(true);
+
 	std::string fullFilepath = directory + '/' + std::string(path);
 
 	unsigned int textureID;
@@ -60,60 +62,16 @@ unsigned int loadTexture(const char* path, const std::string& directory) {
 
 
 
-ObjectModel::ObjectModel(const std::string& path) {
+ObjectModel::ObjectModel(const std::string& path, bool isLamp) {
+	this->isLamp = isLamp;
+
 	loadModel(path);
-
-	unsigned int vertexOffset = 0;
-
-	for (ObjectMesh mesh : meshes) {
-		allSceneVertices.insert(std::end(allSceneVertices), std::begin(mesh.vertices), std::end(mesh.vertices));
-
-		//allSceneIndices.insert(std::end(allSceneIndices), std::begin(mesh.indices), std::end(mesh.indices));
-
-		//We need to add the vertexOffset to indices because the indices start from 0 for every mesh
-		//So if we want to merge all of the meshes into one VAO/VBO/EBO then the indices have to be
-		//manipulated this way
-		for (unsigned int index : mesh.indices) {
-			allSceneIndices.push_back(index + vertexOffset);
-		}
-		
-		vertexOffset += mesh.vertices.size();
-	}
-
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	glBufferData(GL_ARRAY_BUFFER, allSceneVertices.size() * sizeof(Vertex), &allSceneVertices[0], GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, allSceneIndices.size() * sizeof(unsigned int), &allSceneIndices[0], GL_STATIC_DRAW);
-
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, textureCoords));
-
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
-
-	glEnableVertexAttribArray(4);
-	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
-
-	glBindVertexArray(0);
 }
 
 void ObjectModel::loadModel(const std::string& path) {
 	Assimp::Importer importer;
 
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcessPreset_TargetRealtime_MaxQuality);
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cout << "ASSIMP ERROR: " << importer.GetErrorString() << std::endl;
@@ -126,27 +84,9 @@ void ObjectModel::loadModel(const std::string& path) {
 }
 
 void ObjectModel::draw(ShaderLoader& shaderLoader) {
-	unsigned int offset = 0;
-
-
-	glBindVertexArray(VAO);
-
-	for (ObjectMesh mesh : meshes) {
-
-		mesh.draw(shaderLoader);
-
-		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, (GLvoid*)(sizeof(unsigned int) * offset));
-
-		glActiveTexture(GL_TEXTURE0);
-
-		offset += mesh.indices.size();
-		//++offset;
-
+	for (int i = 0; i < meshes.size(); ++i) {
+		meshes[i].draw(shaderLoader);
 	}
-
-	//glDrawElements(GL_TRIANGLES, allSceneIndices.size(), GL_UNSIGNED_INT, 0);
-
-	glBindVertexArray(0);
 }
 
 
@@ -243,7 +183,7 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-	return ObjectMesh(vertices, indices, textures);
+	return ObjectMesh(vertices, indices, textures, isLamp);
 }
 
 
@@ -276,4 +216,9 @@ std::vector<Texture> ObjectModel::loadMaterialTextures(aiMaterial* material, aiT
 	}
 
 	return textures;
+}
+
+//Used for adding lamp objects
+void ObjectModel::addMesh(ObjectMesh mesh) {
+	meshes.push_back(mesh);
 }

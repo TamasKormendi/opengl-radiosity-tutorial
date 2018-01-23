@@ -15,18 +15,23 @@ unsigned int loadTexture(const char* path, const std::string& directory);
 
 class ObjectModel {
 public:
+	bool isLamp;
 
-	ObjectModel(const std::string& path);
+	//It might make more sense to draw everything in the main loop, as I can set specific matrices for
+	//lights and non-lights that way
+	std::vector<ObjectMesh> meshes;
+
+	ObjectModel(const std::string& path, bool isLamp);
 
 	void draw(ShaderLoader& shaderLoader);
 
+	void addMesh(ObjectMesh mesh);
 private:
 
 	std::vector<Vertex> allSceneVertices;
 	std::vector<unsigned int> allSceneIndices;
 
 	std::vector<Texture> texturesLoaded;
-	std::vector<ObjectMesh> meshes;
 	std::string directory;
 
 	unsigned int VAO;

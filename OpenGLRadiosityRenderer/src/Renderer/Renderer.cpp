@@ -21,7 +21,7 @@
 #include <Renderer\Camera.h>
 #include <Renderer\ShaderLoader.h>
 
-#include <Renderer\ObjectModel.h>
+#include <Renderer\RadiosityConfig.h>
 
 
 const unsigned int SCREEN_WIDTH = 1280;
@@ -42,6 +42,11 @@ float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
 
 std::vector<glm::vec3> lightLocations = std::vector<glm::vec3>();
+bool addLampMesh = false;
+bool addAmbient = false;
+
+//TODO: Change this to a sensible ENUM
+unsigned int preprocessDone = 0;
 
 Renderer::Renderer() {
 
@@ -85,88 +90,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
+	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
 
-	float vertices[] = {
-		// positions          // normals           // texture coords
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-		0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
-	};
-
-	unsigned int cubeVBO;
-	unsigned int cubeVAO;
-
-	glGenVertexArrays(1, &cubeVAO);
-	glGenBuffers(1, &cubeVBO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindVertexArray(cubeVAO);
-
-	//vertexPos
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	//normal
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	//textureCoords
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	//Lamp
-	unsigned int lampVAO;
-	glGenVertexArrays(1, &lampVAO);
-	glBindVertexArray(lampVAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	//Lamp position
-	//glm::vec3 lampPos(1.2f, 1.0f, 2.0f);
-
-	ObjectModel mainModel(objectFilepath);
+	ObjectModel mainModel(objectFilepath, false);
+	ObjectModel lampModel("../assets/lamp.obj", true);
 
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
@@ -191,6 +118,12 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		processInput(window);
 
+		if (addLampMesh) {
+			mainModel.addMesh(lampModel.meshes[0]);
+
+			addLampMesh = !addLampMesh;
+		}
+
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -212,56 +145,92 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.0002f);
 		}
 
-
-		/*mainShader.setUniformVec3("light.position", lampPos);
-	
-		mainShader.setUniformVec3("light.ambient", 0.1f, 0.1f, 0.1f);
-		mainShader.setUniformVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
-		mainShader.setUniformVec3("light.specular", 1.0f, 1.0f, 1.0f);
-		mainShader.setUniformFloat("light.constant", 1.0f);
-		mainShader.setUniformFloat("light.linear", 0.09f);
-		mainShader.setUniformFloat("light.quadratic", 0.032f);*/
-
-		//Material properties, likely to be handled differently later (with Assimp?)
-		/*
-		mainShader.setUniformVec3("material.ambient", 0.0f, 1.0f, 0.0f);
-		mainShader.setUniformVec3("material.diffuse", 0.0f, 1.0f, 0.0f);
-		mainShader.setUniformVec3("material.specular", 0.5f, 0.5f, 0.5f);
-		mainShader.setUniformFloat("material.shininess", 32.0f);
-		*/
-
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 		mainShader.setUniformMat4("projection", projection);
+		mainShader.setUniformMat4("ortho", ortho);
 		mainShader.setUniformMat4("view", view);
 
 		glm::mat4 model;
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		mainShader.setUniformMat4("model", model);
 
-		//glBindVertexArray(cubeVAO);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
+		mainShader.setUniformBool("addAmbient", addAmbient);
 
-		mainModel.draw(mainShader);
+		glEnable(GL_CULL_FACE);
 
-		lampShader.useProgram();
+		if (preprocessDone == 1) {
 
-		lampShader.setUniformMat4("projection", projection);
-		lampShader.setUniformMat4("view", view);
+			preprocess(mainModel, preprocessShader, model);
 
-		glBindVertexArray(lampVAO);
+			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
+			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
+			std::cout << mainModel.meshes[7].uvData[1535] << std::endl;*/
 
-		for (int i = 0; i < lightLocations.size(); ++i) {
-			glm::mat4 lampModel = glm::mat4();
-
-			lampModel = glm::translate(lampModel, lightLocations.at(i) / 5.0f);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
-			//The uniform for the lamp's model is just "model"
-			lampShader.setUniformMat4("model", lampModel);
-
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			++preprocessDone;
 		}
 
+		int lampCounter = 0;
+
+		for (unsigned int i = 0; i < mainModel.meshes.size(); ++i) {
+			if (mainModel.meshes[i].isLamp) {
+				lampShader.useProgram();
+
+				lampShader.setUniformMat4("projection", projection);
+				lampShader.setUniformMat4("view", view);
+
+				glm::mat4 lampModel = glm::mat4();
+
+				lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+				lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+				//The uniform for the lamp's model is just "model"
+				lampShader.setUniformMat4("model", lampModel);
+
+				/*
+				unsigned int irradianceID;
+				glGenTextures(1, &irradianceID);
+
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+				glActiveTexture(GL_TEXTURE0);
+				lampShader.setUniformInt("irradianceTexture", 0);
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				*/
+
+				mainModel.meshes[i].draw(lampShader);
+
+				//glDeleteTextures(1, &irradianceID);
+
+				++lampCounter;
+			}
+			else {
+				mainShader.useProgram();
+
+				/*
+				unsigned int irradianceID;
+				glGenTextures(1, &irradianceID);
+
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+				glActiveTexture(GL_TEXTURE0);
+				mainShader.setUniformInt("irradianceTexture", 0);
+				glBindTexture(GL_TEXTURE_2D, irradianceID);
+				*/
+
+				mainModel.meshes[i].draw(mainShader);
+
+				//glDeleteTextures(1, &irradianceID);
+			}
+		}
 		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -269,6 +238,134 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	glfwTerminate();
 
+}
+
+
+//This function will be called automatically before the scene starts rendering eventually so preprocessing can be done before the rendering
+//Current issues:
+//Light placement (have to know the location of the light when doing processing, can be split into 2 parts - preprocess most of the scene and process lights at creation)
+//It is somewhat untested
+void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix) {
+	unsigned int preprocessFramebuffer;
+
+	glGenFramebuffers(1, &preprocessFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, preprocessFramebuffer);
+
+	unsigned int worldspacePosData;
+	unsigned int worldspaceNormalData;
+
+	unsigned int idData;
+	unsigned int uvData;
+
+	//Create texture to hold worldspace-position data
+	glGenTextures(1, &worldspacePosData);
+	glBindTexture(GL_TEXTURE_2D, worldspacePosData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, worldspacePosData, 0);
+
+	//Create texture to hold worldspace-normal data
+	glGenTextures(1, &worldspaceNormalData);
+	glBindTexture(GL_TEXTURE_2D, worldspaceNormalData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, worldspaceNormalData, 0);
+
+	//Create texture to hold triangle IDs in texturespace
+	glGenTextures(1, &idData);
+	glBindTexture(GL_TEXTURE_2D, idData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, idData, 0);
+
+	//Create texture to hold UV-coordinate data in texturespace
+	glGenTextures(1, &uvData);
+	glBindTexture(GL_TEXTURE_2D, uvData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, uvData, 0);
+
+	//Depth buffer
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, RADIOSITY_TEXTURE_SIZE);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+	glDrawBuffers(4, attachments);
+
+	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	int lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		shader.useProgram();
+
+		std::vector<GLfloat> worldspacePositionDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+		std::vector<GLfloat> normalVectorDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+		std::vector<GLfloat> idDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+		std::vector<GLfloat> uvDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			shader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(shader);
+
+			++lampCounter;
+		}
+		else {
+			shader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(shader);
+		}
+
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT2);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &idDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT3);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &uvDataBuffer[0]);
+
+		model.meshes[i].worldspacePosData = worldspacePositionDataBuffer;
+		model.meshes[i].worldspaceNormalData = normalVectorDataBuffer;
+		model.meshes[i].idData = idDataBuffer;
+		model.meshes[i].uvData = uvDataBuffer;
+	}
+
+	/*
+	std::cout << normalVectorDataBuffer[1533] << std::endl;
+	std::cout << normalVectorDataBuffer[1534] << std::endl;
+	std::cout << normalVectorDataBuffer[1535] << std::endl;
+	*/
+	
+	//TODO: Delete textures here if they are not needed anymore
+	
+
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::processInput(GLFWwindow* window) {
@@ -290,13 +387,27 @@ void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		ShaderLoader::reloadShaders();
 	}
+	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS) {
+		addAmbient = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
+		addAmbient = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+		if (preprocessDone == 0) {
+			++preprocessDone;
+		}
+	}
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		glm::vec3 cameraPosition = camera.position * 5.0f;
+		glm::vec3 cameraPosition = camera.position;
 
 		lightLocations.push_back(cameraPosition);
+
+		//In the main render loop adds one lamp mesh to the mainObject
+		addLampMesh = true;
 	}
 }
 

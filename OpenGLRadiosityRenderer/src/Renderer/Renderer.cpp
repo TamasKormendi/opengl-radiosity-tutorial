@@ -164,6 +164,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 			preprocess(mainModel, preprocessShader, model);
 
+			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
+			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
+			std::cout << mainModel.meshes[7].uvData[1535] << std::endl;*/
+
 			++preprocessDone;
 		}
 
@@ -356,6 +360,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	std::cout << normalVectorDataBuffer[1535] << std::endl;
 	*/
 	
+	//TODO: Delete textures here if they are not needed anymore
 	
 
 	glReadBuffer(GL_COLOR_ATTACHMENT0);

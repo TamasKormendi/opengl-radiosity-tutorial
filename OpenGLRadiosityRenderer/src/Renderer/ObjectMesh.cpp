@@ -52,8 +52,8 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 
 	
 	for (unsigned int i = 0; i < textures.size(); ++i) {
-		//We start the texture units from 2 since we leave the first two for the ir/radiance textures
-		glActiveTexture(GL_TEXTURE2 + i);
+		//We start the texture units from 3 since we leave the first two for the ir/radiance textures and the 3rd for the visibility texture
+		glActiveTexture(GL_TEXTURE3 + i);
 
 		std::string number;
 		std::string name = textures[i].type;
@@ -72,7 +72,7 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 		}
 
 		//See above
-		shaderLoader.setUniformInt((name + number).c_str(), i + 2);
+		shaderLoader.setUniformInt((name + number).c_str(), i + 3);
 		glBindTexture(GL_TEXTURE_2D, textures[i].ID);
 	}
 

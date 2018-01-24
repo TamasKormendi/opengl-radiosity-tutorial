@@ -11,7 +11,7 @@ uniform sampler2D texture_diffuse0;
 
 uniform int addAmbient;
 
-void main {
+void main() {
     vec3 result = vec3(0.0f, 0.0f, 0.0f);
 
     vec3 ambient = vec3(0.2, 0.2, 0.2) * texture(texture_diffuse0, textureCoord).rgb;

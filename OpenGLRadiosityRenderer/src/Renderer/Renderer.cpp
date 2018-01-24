@@ -272,7 +272,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				mainModel.meshes[i].draw(finalRenderShader);
 
-				//glDeleteTextures(1, &irradianceID);
+				glDeleteTextures(1, &irradianceID);
 			}
 		}
 		

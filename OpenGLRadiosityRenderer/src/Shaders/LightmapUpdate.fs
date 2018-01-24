@@ -26,14 +26,14 @@ int isVisible() {
 
     projectedPos.xy = projectedPos.xy * 0.5 + 0.5;
 
-    vec3 projectedID = texture(visibilityTexture, proj.xy).rgb;
+    vec3 projectedID = texture(visibilityTexture, projectedPos.xy).rgb;
 
     //We might need to give this a bound (eg +- 0.001) if we don't get correct values
-    if (projectedID.r == ID.r && projectedID.g == ID.g && projectedID.b = ID.b) {
-        return 1;
+    if (projectedID.r == ID.r && projectedID.g == ID.g && projectedID.b == ID.b) {
+        return int(1);
     }
     else {
-        return 0;
+        return int(0);
     }
 }
 
@@ -49,7 +49,7 @@ void main() {
 
     float Fij = max(cosi * cosj, 0) / (pi * distanceSquared);
 
-    Fij = Fij * isVisible();
+    Fij = Fij;
 
     vec3 oldIrradianceValue = texture(irradianceTexture, textureCoord).rgb;
     vec3 oldRadianceValue = texture(radianceTexture, textureCoord).rgb;

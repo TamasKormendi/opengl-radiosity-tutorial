@@ -24,7 +24,7 @@ void main() {
 
     ID = inID;
 
-    cameraspace_position = view * model * vec4(vertexPos, 1.0);
+    cameraspace_position = vec3(view * model * vec4(vertexPos, 1.0));
 
     //The texture coordinates are originally in [0-1], we need to make them [-1, 1]
     vec2 textureSpace = (inTextureCoord - 0.5) * 2;

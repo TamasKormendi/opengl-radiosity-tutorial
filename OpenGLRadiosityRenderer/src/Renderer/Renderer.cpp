@@ -93,6 +93,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
 	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
+	ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
 
 	ObjectModel mainModel(objectFilepath, false);
 	ObjectModel lampModel("../assets/lamp.obj", true);
@@ -184,9 +185,19 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 			selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
+			/*
 			std::cout << shooterUV.x << std::endl;
 			std::cout << shooterUV.y << std::endl;
 			//std::cout << shooterUV.z << std::endl;
+			*/
+
+			glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
+
+			unsigned int visibilityTextureSize = 1024;
+
+			unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
+
+			std::cout << visibilityTexture << std::endl;
 
 			doRadiosityIteration = false;
 		}
@@ -262,6 +273,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 }
 
+//I'm fairly sure most of the FBOs and maybe most of the textures can be created as a preprocess step, which should result in significant speedup
+
 
 //This function will be called automatically before the scene starts rendering eventually so preprocessing can be done before the rendering
 //Current issues:
@@ -315,7 +328,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	unsigned int depth;
 	glGenRenderbuffers(1, &depth);
 	glBindRenderbuffer(GL_RENDERBUFFER, depth);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, RADIOSITY_TEXTURE_SIZE);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -433,6 +446,75 @@ void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm
 			}
 		}
 	}
+}
+
+unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader& visibilityShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution) {
+	unsigned int visibilityFramebuffer;
+
+	glGenFramebuffers(1, &visibilityFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, visibilityFramebuffer);
+
+	unsigned int visibilityTexture;
+
+	glGenTextures(1, &visibilityTexture);
+	glBindTexture(GL_TEXTURE_2D, visibilityTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, resolution, resolution, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, visibilityTexture, 0);
+
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, resolution, resolution);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, attachments);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	int lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		visibilityShader.useProgram();
+
+		visibilityShader.setUniformMat4("view", viewMatrix);
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			visibilityShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(visibilityShader);
+
+			++lampCounter;
+		}
+		else {
+			visibilityShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(visibilityShader);
+		}
+	}
+
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glDeleteRenderbuffers(1, &depth);
+	glDeleteFramebuffers(1, &visibilityFramebuffer);
+
+	return visibilityTexture;
 }
 
 void Renderer::processInput(GLFWwindow* window) {

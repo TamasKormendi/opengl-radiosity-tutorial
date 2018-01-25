@@ -197,7 +197,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 			glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
 
-			unsigned int visibilityTextureSize = 1024;
+			unsigned int visibilityTextureSize = 4096;
 
 			unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
 

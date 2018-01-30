@@ -1,6 +1,8 @@
 #ifndef RADIOSITYCONFIG_H
 #define RADIOSITYCONFIG_H
 
-const int RADIOSITY_TEXTURE_SIZE = 512;
+
+//This is too low for good results but it runs decently fast for debugging
+const int RADIOSITY_TEXTURE_SIZE = 32;
 
 #endif

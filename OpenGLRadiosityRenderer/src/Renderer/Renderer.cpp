@@ -103,6 +103,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
 
+	int iterationNumber = 0;
+
 	while (!glfwWindowShouldClose(window)) {
 		++frameCounter;
 		
@@ -176,6 +178,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			std::cout << mainModel.meshes[7].uvData[1535] << std::endl;*/
 
 			//This is needed so preprocess can only be done once
+
+			std::cout << "Preprocess done" << std::endl;
 			++preprocessDone;
 		}
 
@@ -185,32 +189,58 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		glm::vec2 shooterUV;
 		int shooterMeshIndex;
 
+
+
 		if (doRadiosityIteration) {
+			
+			//for (int i = 0; i < 100; ++i) {
 
-			selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
-			/*
-			std::cout << shooterUV.x << std::endl;
-			std::cout << shooterUV.y << std::endl;
-			//std::cout << shooterUV.z << std::endl;
-			*/
 
-			glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
 
-			unsigned int visibilityTextureSize = 4096;
+				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
-			unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
+				/*
+				std::cout << shooterUV.x << std::endl;
+				std::cout << shooterUV.y << std::endl;
+				//std::cout << shooterUV.z << std::endl;
+				*/
 
-			lightmapUpdateShader.useProgram();
+				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
 
-			lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
-			lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
-			lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
-			lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
+				unsigned int visibilityTextureSize = 1024;
 
-			updateLightmaps(mainModel, lightmapUpdateShader, model, shooterView, visibilityTexture);
+				unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
 
-			doRadiosityIteration = false;
+				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
+				std::cout << "Shooter green " << shooterRadiance.y << std::endl;
+				std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
+
+				shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+					1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+					1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
+
+				lightmapUpdateShader.useProgram();
+
+				lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
+				lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+				lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+				lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
+
+				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterView, visibilityTexture);
+
+				glDeleteTextures(1, &visibilityTexture);
+
+				std::cout << iterationNumber << std::endl;
+
+				++iterationNumber;
+
+				//std::cout << i << std::endl;
+
+			//}
+
+			//Uncomment this to resume manual iteration
+			//doRadiosityIteration = false;
 		}
 
 		
@@ -420,6 +450,10 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, int& shooterMeshIndex) {
 	float maxLuminance = 0.0f;
 
+
+	int meshIndex = 0;
+	int pixelIndex = 0;
+
 	//Loop through every mesh
 	for (int i = 0; i < model.meshes.size(); ++i) {
 
@@ -453,10 +487,17 @@ void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm
 
 
 					maxLuminance = currentLuminance;
+
+					meshIndex = i;
+					pixelIndex = j;
 				}
 			}
 		}
 	}
+
+	model.meshes[meshIndex].radianceData[pixelIndex] = 0.0f;
+	model.meshes[meshIndex].radianceData[pixelIndex + 1] = 0.0f;
+	model.meshes[meshIndex].radianceData[pixelIndex + 2] = 0.0f;
 }
 
 unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader& visibilityShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution) {
@@ -649,6 +690,11 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 
 	//We'll need to delete the framebuffer and the newIrradiance and newRadiance textures here
 
+	glDeleteTextures(1, &newIrradianceTexture);
+	glDeleteTextures(1, &newRadianceTexture);
+	glDeleteRenderbuffers(1, &depth);
+	glDeleteFramebuffers(1, &lightmapFramebuffer);
+
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -683,6 +729,9 @@ void Renderer::processInput(GLFWwindow* window) {
 		if (preprocessDone == 0) {
 			++preprocessDone;
 		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+		doRadiosityIteration = false;
 	}
 }
 

@@ -33,7 +33,7 @@ int isVisible() {
     float visibilityB = abs (projectedID.b - ID.b);
 
     //We might need to give this a bound (eg +- 0.001) if we don't get correct values
-    if (visibilityR <= 0.02 && visibilityG <= 0.02 && visibilityB <= 0.02 ) {
+    if (visibilityR <= 0.01 && visibilityG <= 0.01 && visibilityB <= 0.01 ) {
         return int(1);
     }
     else {
@@ -43,6 +43,10 @@ int isVisible() {
 
 void main() {
     vec3 r = shooterWorldspacePos - fragPos;
+
+    //Distance is halved for now
+    r = r / 2;
+
     float distanceSquared = dot(r, r);
     r = normalize(r);
 
@@ -51,7 +55,16 @@ void main() {
 
     const float pi = 3.1415926535;
 
-    float Fij = max(cosi * cosj, 0) / (pi * distanceSquared);
+    float Fij = 0.0;
+
+    //This if avoids division by 0
+    if (distanceSquared > 0) {
+        //Removed pi for now
+        Fij = max(cosi * cosj, 0) / (distanceSquared);
+    }
+    else {
+        Fij = 0;
+    }
 
     Fij = Fij * isVisible();
 
@@ -64,7 +77,35 @@ void main() {
     vec3 deltaRadiance = deltaIrradiance * diffuseValue;
 
     //Clamping the values and zeroing out the shooter is missing for now
+    //Update: this is how values are clamped for now, shooter zeroing is done in the shooter selection function
 
     newIrradianceValue = oldIrradianceValue + deltaIrradiance;
+
+    
+    if (newIrradianceValue.r > 1) {
+        newIrradianceValue.r = 1;
+    }
+    if (newIrradianceValue.g > 1) {
+        newIrradianceValue.g = 1;
+    }
+    if (newIrradianceValue.b > 1) {
+        newIrradianceValue.b = 1;
+    }
+    
+
     newRadianceValue = oldRadianceValue + deltaRadiance;
+
+
+    
+    if (newRadianceValue.r > diffuseValue.r) {
+        newRadianceValue.r = diffuseValue.r;
+    }
+    if (newRadianceValue.g > diffuseValue.g) {
+        newRadianceValue.g = diffuseValue.g;
+    }
+    if (newRadianceValue.b > diffuseValue.b) {
+        newRadianceValue.b = diffuseValue.b;
+    }
+    
+
 }

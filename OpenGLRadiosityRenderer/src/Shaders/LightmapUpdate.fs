@@ -81,7 +81,8 @@ void main() {
 
     newIrradianceValue = oldIrradianceValue + deltaIrradiance;
 
-    
+
+    //Instead of this, normalising the value if any exceeds 1 might be more sensible    
     if (newIrradianceValue.r > 1) {
         newIrradianceValue.r = 1;
     }

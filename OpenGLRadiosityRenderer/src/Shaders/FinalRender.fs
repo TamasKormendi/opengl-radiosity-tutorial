@@ -4,6 +4,8 @@ out vec4 fragColour;
 
 in vec2 textureCoord;
 
+in vec3 ID;
+
 uniform sampler2D irradianceTexture;
 //uniform sampler2D radianceTexture;
 

@@ -96,6 +96,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
 	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
 	ShaderLoader finalRenderShader("../src/Shaders/FinalRender.vs", "../src/Shaders/FinalRender.fs");
+	ShaderLoader framebufferDebugShader("../src/Shaders/FramebufferDebug.vs", "../src/Shaders/FramebufferDebug.fs");
 
 	ObjectModel mainModel(objectFilepath, false);
 	ObjectModel lampModel("../assets/lamp.obj", true);
@@ -105,6 +106,35 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	int iterationNumber = 0;
 
+
+	//Based on https://learnopengl.com/In-Practice/Debugging
+	float quadVertices[] = {
+		// positions   // texCoords
+		0.0f,  1.0f,  0.0f, 1.0f,
+		0.0f, 0.0f,  0.0f, 0.0f,
+		1.0f, 0.0f,  1.0f, 0.0f,
+
+		0.0f,  1.0f,  0.0f, 1.0f,
+		1.0f, 0.0f,  1.0f, 0.0f,
+		1.0f,  1.0f,  1.0f, 1.0f
+	};
+
+	unsigned int quadVAO, quadVBO;
+	glGenVertexArrays(1, &quadVAO);
+	glGenBuffers(1, &quadVBO);
+	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	bool debugInitialised = false;
+	unsigned int debugTexture = 0;
+
+
+	//RENDER LOOP STARTS HERE
 	while (!glfwWindowShouldClose(window)) {
 		++frameCounter;
 		
@@ -190,13 +220,14 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		int shooterMeshIndex;
 
 
-
+		//Radiosity iteration section
 		if (doRadiosityIteration) {
 			
 			//for (int i = 0; i < 100; ++i) {
 
-
-
+			if (debugInitialised) {
+				glDeleteTextures(1, &debugTexture);
+			}
 
 				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
@@ -206,19 +237,24 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//std::cout << shooterUV.z << std::endl;
 				*/
 
+				//TODO: The upVector most likely fails if we have a normal along +y or -y
 				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
 
 				unsigned int visibilityTextureSize = 1024;
 
 				unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
 
+				debugTexture = visibilityTexture;
+				debugInitialised = true;
+
 				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
 				std::cout << "Shooter green " << shooterRadiance.y << std::endl;
 				std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
 
-				shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
-					1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
-					1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
+				//Scale down the shooter's strength - COMMENTED OUT FOR NOW
+				//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+				//	1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+				//	1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
 
 				lightmapUpdateShader.useProgram();
 
@@ -229,7 +265,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterView, visibilityTexture);
 
-				glDeleteTextures(1, &visibilityTexture);
+				//glDeleteTextures(1, &visibilityTexture);
 
 				std::cout << iterationNumber << std::endl;
 
@@ -240,7 +276,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			//}
 
 			//Uncomment this to resume manual iteration
-			//doRadiosityIteration = false;
+			doRadiosityIteration = false;
 		}
 
 		
@@ -304,6 +340,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				glDeleteTextures(1, &irradianceID);
 			}
+		}
+
+		if (debugInitialised) {
+			displayFramebufferTexture(framebufferDebugShader, quadVAO, debugTexture);
 		}
 		
 		glfwSwapBuffers(window);
@@ -733,6 +773,24 @@ void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 		doRadiosityIteration = false;
 	}
+}
+
+
+//This function is adapted from https://learnopengl.com/In-Practice/Debugging
+void Renderer::displayFramebufferTexture(ShaderLoader& debugShader, unsigned int& debugVAO, unsigned int textureID) {
+
+	debugShader.useProgram();
+
+	glActiveTexture(GL_TEXTURE0);
+	debugShader.setUniformInt("framebufferTexture", 0);
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	glBindVertexArray(debugVAO);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {

@@ -231,14 +231,20 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
-				/*
-				std::cout << shooterUV.x << std::endl;
-				std::cout << shooterUV.y << std::endl;
-				//std::cout << shooterUV.z << std::endl;
-				*/
+				
+				std::cout << shooterWorldspaceNormal.x << std::endl;
+				std::cout << shooterWorldspaceNormal.y << std::endl;
+				std::cout << shooterWorldspaceNormal.z << std::endl;
+				
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
-				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
+				glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
+
+				if (upVec.y == 0.0f && upVec.z == 0.0f) {
+					upVec.y = 1.0f;
+				}
+
+				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
 
 				unsigned int visibilityTextureSize = 1024;
 
@@ -487,6 +493,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 
 //Only to be called after the preprocess function
 //Do note that this function is incredibly slow - in a final version this functionality would be optimally handled on the GPU but for now, this is sufficient
+//TODO: Change this to per-mesh selection followed by linear shooter processing (the former through mipmapping)
 void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, int& shooterMeshIndex) {
 	float maxLuminance = 0.0f;
 
@@ -513,6 +520,8 @@ void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm
 				float blueIDValue = model.meshes[i].idData[j + 2];
 
 				float idSum = redIDValue + greenIDValue + blueIDValue;
+
+				float yUpTest = model.meshes[i].worldspaceNormalData[j + 1];
 
 				//Check if pixel maps to a triangle
 				if (idSum > 0) {

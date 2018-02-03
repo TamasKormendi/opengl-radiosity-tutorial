@@ -90,10 +90,13 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	glEnable(GL_DEPTH_TEST);
 
-	ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
-	ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
+	//ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
+	//ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
 	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
 	ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
+	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
+	ShaderLoader finalRenderShader("../src/Shaders/FinalRender.vs", "../src/Shaders/FinalRender.fs");
+	ShaderLoader framebufferDebugShader("../src/Shaders/FramebufferDebug.vs", "../src/Shaders/FramebufferDebug.fs");
 
 	ObjectModel mainModel(objectFilepath, false);
 	ObjectModel lampModel("../assets/lamp.obj", true);
@@ -101,6 +104,37 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
 
+	int iterationNumber = 0;
+
+
+	//Based on https://learnopengl.com/In-Practice/Debugging
+	float quadVertices[] = {
+		// positions   // texCoords
+		0.0f,  1.0f,  0.0f, 1.0f,
+		0.0f, 0.0f,  0.0f, 0.0f,
+		1.0f, 0.0f,  1.0f, 0.0f,
+
+		0.0f,  1.0f,  0.0f, 1.0f,
+		1.0f, 0.0f,  1.0f, 0.0f,
+		1.0f,  1.0f,  1.0f, 1.0f
+	};
+
+	unsigned int quadVAO, quadVBO;
+	glGenVertexArrays(1, &quadVAO);
+	glGenBuffers(1, &quadVBO);
+	glBindVertexArray(quadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	bool debugInitialised = false;
+	unsigned int debugTexture = 0;
+
+
+	//RENDER LOOP STARTS HERE
 	while (!glfwWindowShouldClose(window)) {
 		++frameCounter;
 		
@@ -113,7 +147,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		if ((currentFrameTime - fpsTimeCounter) >= 1.0) {
 			double actualElapsedTime = (currentFrameTime - fpsTimeCounter);
 
-			std::cout << "mSPF: " << ((actualElapsedTime * 1000) / (double)frameCounter) << " FPS: " << ((double)frameCounter / actualElapsedTime) << std::endl;
+			//std::cout << "mSPF: " << ((actualElapsedTime * 1000) / (double)frameCounter) << " FPS: " << ((double)frameCounter / actualElapsedTime) << std::endl;
 
 			frameCounter = 0;
 			fpsTimeCounter += actualElapsedTime;
@@ -130,13 +164,14 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		mainShader.useProgram();
+		finalRenderShader.useProgram();
 
-		mainShader.setUniformVec3("viewPos", camera.position);
-		mainShader.setUniformInt("lightAmount", lightLocations.size());
+		//mainShader.setUniformVec3("viewPos", camera.position);
+		//mainShader.setUniformInt("lightAmount", lightLocations.size());
 
 		//TODO: Ambient value is most likely going to get axed along with material.ambient
-
+		
+		/*
 		for (int i = 0; i < lightLocations.size(); ++i) {
 			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].position", lightLocations.at(i));
 			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].ambient", 0.1f, 0.1f, 0.1f);
@@ -147,19 +182,20 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].linear", 0.007f);
 			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.0002f);
 		}
+		*/
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
-		mainShader.setUniformMat4("projection", projection);
-		mainShader.setUniformMat4("ortho", ortho);
-		mainShader.setUniformMat4("view", view);
+		finalRenderShader.setUniformMat4("projection", projection);
+		//mainShader.setUniformMat4("ortho", ortho);
+		finalRenderShader.setUniformMat4("view", view);
 
 		glm::mat4 model;
 		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-		mainShader.setUniformMat4("model", model);
+		finalRenderShader.setUniformMat4("model", model);
 
-		mainShader.setUniformBool("addAmbient", addAmbient);
+		finalRenderShader.setUniformBool("addAmbient", addAmbient);
 
 		glEnable(GL_CULL_FACE);
 
@@ -172,6 +208,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			std::cout << mainModel.meshes[7].uvData[1535] << std::endl;*/
 
 			//This is needed so preprocess can only be done once
+
+			std::cout << "Preprocess done" << std::endl;
 			++preprocessDone;
 		}
 
@@ -181,24 +219,69 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		glm::vec2 shooterUV;
 		int shooterMeshIndex;
 
+
+		//Radiosity iteration section
 		if (doRadiosityIteration) {
+			
+			//for (int i = 0; i < 100; ++i) {
 
-			selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
+			if (debugInitialised) {
+				glDeleteTextures(1, &debugTexture);
+			}
 
-			/*
-			std::cout << shooterUV.x << std::endl;
-			std::cout << shooterUV.y << std::endl;
-			//std::cout << shooterUV.z << std::endl;
-			*/
+				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
-			glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, glm::vec3(0, 1, 0));
+				
+				std::cout << shooterWorldspaceNormal.x << std::endl;
+				std::cout << shooterWorldspaceNormal.y << std::endl;
+				std::cout << shooterWorldspaceNormal.z << std::endl;
+				
 
-			unsigned int visibilityTextureSize = 1024;
+				//TODO: The upVector most likely fails if we have a normal along +y or -y
+				glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
 
-			unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
+				if (upVec.y == 0.0f && upVec.z == 0.0f) {
+					upVec.y = 1.0f;
+				}
 
-			std::cout << visibilityTexture << std::endl;
+				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
 
+				unsigned int visibilityTextureSize = 1024;
+
+				unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
+
+				debugTexture = visibilityTexture;
+				debugInitialised = true;
+
+				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
+				std::cout << "Shooter green " << shooterRadiance.y << std::endl;
+				std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
+
+				//Scale down the shooter's strength - COMMENTED OUT FOR NOW
+				//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+				//	1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+				//	1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
+
+				lightmapUpdateShader.useProgram();
+
+				lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
+				lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+				lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+				lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
+
+				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterView, visibilityTexture);
+
+				//glDeleteTextures(1, &visibilityTexture);
+
+				std::cout << iterationNumber << std::endl;
+
+				++iterationNumber;
+
+				//std::cout << i << std::endl;
+
+			//}
+
+			//Uncomment this to resume manual iteration
 			doRadiosityIteration = false;
 		}
 
@@ -208,19 +291,19 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		for (unsigned int i = 0; i < mainModel.meshes.size(); ++i) {
 			if (mainModel.meshes[i].isLamp) {
-				lampShader.useProgram();
+				finalRenderShader.useProgram();
 
-				lampShader.setUniformMat4("projection", projection);
-				lampShader.setUniformMat4("view", view);
+				finalRenderShader.setUniformMat4("projection", projection);
+				finalRenderShader.setUniformMat4("view", view);
 
 				glm::mat4 lampModel = glm::mat4();
 
 				lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
 				lampModel = glm::scale(lampModel, glm::vec3(0.05f));
 				//The uniform for the lamp's model is just "model"
-				lampShader.setUniformMat4("model", lampModel);
+				finalRenderShader.setUniformMat4("model", lampModel);
 
-				/*
+				
 				unsigned int irradianceID;
 				glGenTextures(1, &irradianceID);
 
@@ -231,20 +314,20 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 				glActiveTexture(GL_TEXTURE0);
-				lampShader.setUniformInt("irradianceTexture", 0);
+				finalRenderShader.setUniformInt("irradianceTexture", 0);
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				*/
+				
 
-				mainModel.meshes[i].draw(lampShader);
+				mainModel.meshes[i].draw(finalRenderShader);
 
-				//glDeleteTextures(1, &irradianceID);
+				glDeleteTextures(1, &irradianceID);
 
 				++lampCounter;
 			}
 			else {
-				mainShader.useProgram();
+				finalRenderShader.useProgram();
 
-				/*
+				
 				unsigned int irradianceID;
 				glGenTextures(1, &irradianceID);
 
@@ -255,14 +338,18 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 				glActiveTexture(GL_TEXTURE0);
-				mainShader.setUniformInt("irradianceTexture", 0);
+				finalRenderShader.setUniformInt("irradianceTexture", 0);
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				*/
+				
 
-				mainModel.meshes[i].draw(mainShader);
+				mainModel.meshes[i].draw(finalRenderShader);
 
-				//glDeleteTextures(1, &irradianceID);
+				glDeleteTextures(1, &irradianceID);
 			}
+		}
+
+		if (debugInitialised) {
+			displayFramebufferTexture(framebufferDebugShader, quadVAO, debugTexture);
 		}
 		
 		glfwSwapBuffers(window);
@@ -406,8 +493,13 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 
 //Only to be called after the preprocess function
 //Do note that this function is incredibly slow - in a final version this functionality would be optimally handled on the GPU but for now, this is sufficient
+//TODO: Change this to per-mesh selection followed by linear shooter processing (the former through mipmapping)
 void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, int& shooterMeshIndex) {
 	float maxLuminance = 0.0f;
+
+
+	int meshIndex = 0;
+	int pixelIndex = 0;
 
 	//Loop through every mesh
 	for (int i = 0; i < model.meshes.size(); ++i) {
@@ -429,6 +521,8 @@ void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm
 
 				float idSum = redIDValue + greenIDValue + blueIDValue;
 
+				float yUpTest = model.meshes[i].worldspaceNormalData[j + 1];
+
 				//Check if pixel maps to a triangle
 				if (idSum > 0) {
 					shooterRadiance = glm::vec3(model.meshes[i].radianceData[j], model.meshes[i].radianceData[j + 1], model.meshes[i].radianceData[j + 2]);
@@ -442,10 +536,17 @@ void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm
 
 
 					maxLuminance = currentLuminance;
+
+					meshIndex = i;
+					pixelIndex = j;
 				}
 			}
 		}
 	}
+
+	model.meshes[meshIndex].radianceData[pixelIndex] = 0.0f;
+	model.meshes[meshIndex].radianceData[pixelIndex + 1] = 0.0f;
+	model.meshes[meshIndex].radianceData[pixelIndex + 2] = 0.0f;
 }
 
 unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader& visibilityShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution) {
@@ -489,6 +590,7 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 
 		visibilityShader.setUniformMat4("view", viewMatrix);
 
+
 		if (model.meshes[i].isLamp) {
 			glm::mat4 lampModel = glm::mat4();
 
@@ -515,6 +617,136 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 	glDeleteFramebuffers(1, &visibilityFramebuffer);
 
 	return visibilityTexture;
+}
+
+//The shooter information has to be bound to the lightmapUpdateShader before calling this function
+void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& visibilityTexture) {
+	unsigned int lightmapFramebuffer;
+
+	glGenFramebuffers(1, &lightmapFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, lightmapFramebuffer);
+
+	unsigned int newIrradianceTexture;
+	unsigned int newRadianceTexture;
+
+	glGenTextures(1, &newIrradianceTexture);
+	glBindTexture(GL_TEXTURE_2D, newIrradianceTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, newIrradianceTexture, 0);
+
+	glGenTextures(1, &newRadianceTexture);
+	glBindTexture(GL_TEXTURE_2D, newRadianceTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, newRadianceTexture, 0);
+
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(2, attachments);
+
+	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	int lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		lightmapUpdateShader.useProgram();
+
+		std::vector<GLfloat> newIrradianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+		std::vector<GLfloat> newRadianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+		lightmapUpdateShader.setUniformMat4("view", viewMatrix);
+
+		//Create textures from the old irradiance and radiance data
+		unsigned int irradianceID;
+		glGenTextures(1, &irradianceID);
+
+		glBindTexture(GL_TEXTURE_2D, irradianceID);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].irradianceData[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+
+
+		unsigned int radianceID;
+		glGenTextures(1, &radianceID);
+
+		glBindTexture(GL_TEXTURE_2D, radianceID);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].radianceData[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+
+		//Bind them
+		glActiveTexture(GL_TEXTURE0);
+		lightmapUpdateShader.setUniformInt("irradianceTexture", 0);
+		glBindTexture(GL_TEXTURE_2D, irradianceID);
+
+		glActiveTexture(GL_TEXTURE1);
+		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
+		glBindTexture(GL_TEXTURE_2D, radianceID);
+		
+		//Also bind the visibility texture
+		glActiveTexture(GL_TEXTURE2);
+		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
+		glBindTexture(GL_TEXTURE_2D, visibilityTexture);
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			lightmapUpdateShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(lightmapUpdateShader);
+
+			++lampCounter;
+		}
+		else {
+			lightmapUpdateShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(lightmapUpdateShader);
+		}
+
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newIrradianceDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newRadianceDataBuffer[0]);
+
+		model.meshes[i].irradianceData = newIrradianceDataBuffer;
+		model.meshes[i].radianceData = newRadianceDataBuffer;
+
+		glDeleteTextures(1, &irradianceID);
+		glDeleteTextures(1, &radianceID);
+	}
+
+	//We'll need to delete the framebuffer and the newIrradiance and newRadiance textures here
+
+	glDeleteTextures(1, &newIrradianceTexture);
+	glDeleteTextures(1, &newRadianceTexture);
+	glDeleteRenderbuffers(1, &depth);
+	glDeleteFramebuffers(1, &lightmapFramebuffer);
+
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::processInput(GLFWwindow* window) {
@@ -547,6 +779,27 @@ void Renderer::processInput(GLFWwindow* window) {
 			++preprocessDone;
 		}
 	}
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+		doRadiosityIteration = false;
+	}
+}
+
+
+//This function is adapted from https://learnopengl.com/In-Practice/Debugging
+void Renderer::displayFramebufferTexture(ShaderLoader& debugShader, unsigned int& debugVAO, unsigned int textureID) {
+
+	debugShader.useProgram();
+
+	glActiveTexture(GL_TEXTURE0);
+	debugShader.setUniformInt("framebufferTexture", 0);
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	glBindVertexArray(debugVAO);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {

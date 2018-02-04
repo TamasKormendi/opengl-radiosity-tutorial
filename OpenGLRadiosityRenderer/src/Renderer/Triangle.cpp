@@ -44,6 +44,6 @@ void Triangle::calculateRGBID() {
 	vertex3.rgbID = idVector;
 
 	//Switched the per-triangle difference to 10 to avoid precision issues
-	integerID += 1;
+	integerID += 10;
 }
 

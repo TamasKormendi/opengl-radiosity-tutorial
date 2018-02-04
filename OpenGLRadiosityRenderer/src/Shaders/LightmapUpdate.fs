@@ -10,6 +10,8 @@ in vec3 ID;
 
 in vec3 cameraspace_position;
 
+in vec4 fragPosLightSpace;
+
 uniform vec3 shooterRadiance;
 uniform vec3 shooterWorldspacePos;
 uniform vec3 shooterWorldspaceNormal;
@@ -21,6 +23,7 @@ uniform sampler2D visibilityTexture;
 
 uniform sampler2D texture_diffuse0;
 
+/*
 int isVisible() {
     vec3 projectedPos = normalize(cameraspace_position);
 
@@ -40,6 +43,35 @@ int isVisible() {
         return int(0);
     }
 }
+*/
+
+
+//Parts of this function adapted from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mappings
+float isVisible() {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+
+    projCoords = projCoords * 0.5 + 0.5;
+
+    float closestDepth = texture(visibilityTexture, projCoords.xy).r; 
+
+    float currentDepth = projCoords.z;
+
+    float depthDiff = currentDepth - closestDepth;
+
+    //The bias introduces some peter panning but eliminates the "barcode" artifacts
+    float bias = 0.001;
+
+    float shadow = (currentDepth - bias) > closestDepth  ? 0.0 : 1.0;
+
+    float zeroDepth = currentDepth - 0.001;
+
+    if (zeroDepth <= 0) {
+        return 0;
+    }  
+
+    return int(shadow);
+}
+
 
 void main() {
     vec3 r = shooterWorldspacePos - fragPos;
@@ -78,6 +110,8 @@ void main() {
 
     //Clamping the values and zeroing out the shooter is missing for now
     //Update: this is how values are clamped for now, shooter zeroing is done in the shooter selection function
+
+    //newIrradianceValue = vec3(isVisible(), isVisible(), isVisible());
 
     newIrradianceValue = oldIrradianceValue + deltaIrradiance;
 

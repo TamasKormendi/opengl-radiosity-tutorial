@@ -11,6 +11,7 @@ in vec3 ID;
 in vec3 cameraspace_position;
 
 in vec4 fragPosLightSpace;
+in vec4 fragPosLeftLightSpace;
 
 uniform vec3 shooterRadiance;
 uniform vec3 shooterWorldspacePos;
@@ -19,7 +20,9 @@ uniform vec2 shooterUV;
 
 uniform sampler2D irradianceTexture;
 uniform sampler2D radianceTexture;
+
 uniform sampler2D visibilityTexture;
+uniform sampler2D leftVisibilityTexture;
 
 uniform sampler2D texture_diffuse0;
 
@@ -47,29 +50,40 @@ int isVisible() {
 
 
 //Parts of this function adapted from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mappings
-float isVisible() {
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-
-    projCoords = projCoords * 0.5 + 0.5;
-
-    float closestDepth = texture(visibilityTexture, projCoords.xy).r; 
-
-    float currentDepth = projCoords.z;
-
-    float depthDiff = currentDepth - closestDepth;
-
+int isVisible() {
     //The bias introduces some peter panning but eliminates the "barcode" artifacts
     float bias = 0.001;
 
-    float shadow = (currentDepth - bias) > closestDepth  ? 0.0 : 1.0;
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(visibilityTexture, projCoords.xy).r; 
+    float currentDepth = projCoords.z;
 
-    float zeroDepth = currentDepth - 0.001;
 
+    int shadow = (currentDepth - bias) > closestDepth  ? 0 : 1;
+    float zeroDepth = currentDepth - bias;
     if (zeroDepth <= 0) {
-        return 0;
-    }  
+        shadow = 0;
+    } 
 
-    return int(shadow);
+    vec3 leftProjCoords = fragPosLeftLightSpace.xyz / fragPosLeftLightSpace.w;
+    leftProjCoords = leftProjCoords * 0.5 + 0.5;
+    float leftClosestDepth = texture(leftVisibilityTexture, leftProjCoords.xy).r;
+    float leftCurrentDepth = leftProjCoords.z;
+
+    int leftShadow = (leftCurrentDepth - bias) > leftClosestDepth ? 0 : 1;
+    float leftZeroDepth = leftCurrentDepth - bias;
+
+    if (leftZeroDepth <= 0) {
+        leftShadow = 0;
+    } 
+
+    if (leftShadow == 1 || shadow == 1) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 

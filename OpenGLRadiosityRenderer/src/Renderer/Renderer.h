@@ -21,9 +21,15 @@ private:
 
 	unsigned int createVisibilityTexture(ObjectModel& model, ShaderLoader& visibilityShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution);
 
-	unsigned int createHemicubeTextures(ObjectModel& model, ShaderLoader& hemicubeShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution);
+	std::vector<unsigned int> createHemicubeTextures(ObjectModel& model,
+										ShaderLoader& hemicubeShader,
+										glm::mat4& mainObjectModelMatrix,
+										std::vector<glm::mat4>& viewMatrices,
+										unsigned int& resolution,
+										glm::vec3& shooterWorldspacePos,
+										glm::vec3& shooterWorldspaceNormal);
 
-	void updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& visibilityTexture);
+	void updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures);
 
 	void displayFramebufferTexture(ShaderLoader& debugShader, unsigned int& debugVAO, unsigned int textureID);
 };

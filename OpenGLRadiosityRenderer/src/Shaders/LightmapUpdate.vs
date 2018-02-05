@@ -11,12 +11,15 @@ out vec2 textureCoord;
 out vec3 ID;
 
 out vec4 fragPosLightSpace;
+out vec4 fragPosLeftLightSpace;
 
 out vec3 cameraspace_position;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
+uniform mat4 leftView;
 
 void main() {
     fragPos = vec3(model * vec4(vertexPos, 1.0));
@@ -30,6 +33,8 @@ void main() {
     cameraspace_position = vec3(view * model * vec4(vertexPos, 1.0));
 
     fragPosLightSpace = projection * view * model * vec4(vertexPos, 1.0);
+
+    fragPosLeftLightSpace = projection * leftView * model * vec4(vertexPos, 1.0);
 
     //The texture coordinates are originally in [0-1], we need to make them [-1, 1]
     vec2 textureSpace = (inTextureCoord - 0.5) * 2;

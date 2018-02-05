@@ -240,6 +240,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
+				/*
 				glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
 
 				if (upVec.y == 0.0f && upVec.z == 0.0f) {
@@ -247,6 +248,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				}
 
 				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
+				*/
+
+				std::vector<glm::mat4> shooterViews;
 
 				unsigned int visibilityTextureSize = 1024;
 
@@ -257,9 +261,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				//unsigned int visibilityTexture = createVisibilityTexture(mainModel, hemicubeVisibilityShader, model, shooterView, visibilityTextureSize);
 
-				unsigned int visibilityTexture = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterView, visibilityTextureSize);
+				std::vector<unsigned int> visibilityTextures = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterViews, visibilityTextureSize, shooterWorldspacePos, shooterWorldspaceNormal);
 
-				debugTexture = visibilityTexture;
+				debugTexture = visibilityTextures[1];
 				debugInitialised = true;
 
 				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
@@ -280,7 +284,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 
-				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterView, visibilityTexture);
+				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
 
 				//glDeleteTextures(1, &visibilityTexture);
 
@@ -630,13 +634,38 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 	return visibilityTexture;
 }
 
-unsigned int Renderer::createHemicubeTextures(ObjectModel& model, ShaderLoader& hemicubeShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution) {
+std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
+	ShaderLoader& hemicubeShader,
+	glm::mat4& mainObjectModelMatrix,
+	std::vector<glm::mat4>& viewMatrices,
+	unsigned int& resolution,
+	glm::vec3& shooterWorldspacePos,
+	glm::vec3& shooterWorldspaceNormal) {
+
+	float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
+
+	if (upVec.y == 0.0f && upVec.z == 0.0f) {
+		upVec.y = 1.0f;
+	}
+
+	glm::mat4 frontShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
+	glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, -shooterWorldspaceNormal.x), upVec);
+
+	//This would actually shoot up
+	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(0, 1, 0), glm::vec3(0, 0, -1));
+
+	viewMatrices.push_back(frontShooterView);
+	viewMatrices.push_back(leftShooterView);
+
+
 	unsigned int hemicubeFrontFramebuffer;
 	glGenFramebuffers(1, &hemicubeFrontFramebuffer);
 
-	unsigned int depthMap;
-	glGenTextures(1, &depthMap);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
+	unsigned int frontDepthMap;
+	glGenTextures(1, &frontDepthMap);
+	glBindTexture(GL_TEXTURE_2D, frontDepthMap);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -644,11 +673,10 @@ unsigned int Renderer::createHemicubeTextures(ObjectModel& model, ShaderLoader& 
 	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, frontDepthMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
 
@@ -656,17 +684,70 @@ unsigned int Renderer::createHemicubeTextures(ObjectModel& model, ShaderLoader& 
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 
+	glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
+
 	int lampCounter = 0;
 
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		hemicubeShader.useProgram();
 
-		glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 
 		hemicubeShader.setUniformMat4("projection", shooterProj);
 
-		hemicubeShader.setUniformMat4("view", viewMatrix);
+		hemicubeShader.setUniformMat4("view", frontShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int leftDepthMap;
+	glGenTextures(1, &leftDepthMap);
+	glBindTexture(GL_TEXTURE_2D, leftDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, leftDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", leftShooterView);
 
 
 		if (model.meshes[i].isLamp) {
@@ -691,12 +772,17 @@ unsigned int Renderer::createHemicubeTextures(ObjectModel& model, ShaderLoader& 
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	std::vector<unsigned int> depthTextures;
 
-	return depthMap;
+	depthTextures.push_back(frontDepthMap);
+	depthTextures.push_back(leftDepthMap);
+
+
+	return depthTextures;
 }
 
 //The shooter information has to be bound to the lightmapUpdateShader before calling this function
-void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& visibilityTexture) {
+void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures) {
 	unsigned int lightmapFramebuffer;
 
 	glGenFramebuffers(1, &lightmapFramebuffer);
@@ -752,7 +838,8 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.useProgram();
 		lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 
-		lightmapUpdateShader.setUniformMat4("view", viewMatrix);
+		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
+		lightmapUpdateShader.setUniformMat4("leftView", viewMatrices[1]);
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;
@@ -786,7 +873,11 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		//Also bind the visibility texture
 		glActiveTexture(GL_TEXTURE2);
 		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
-		glBindTexture(GL_TEXTURE_2D, visibilityTexture);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
+
+		glActiveTexture(GL_TEXTURE10);
+		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 10);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
 
 		if (model.meshes[i].isLamp) {
 			glm::mat4 lampModel = glm::mat4();

@@ -49,7 +49,7 @@ int isVisible() {
 */
 
 
-//Parts of this function adapted from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mappings
+/*
 int isVisible() {
     //The bias introduces some peter panning but eliminates the "barcode" artifacts
     float bias = 0.001;
@@ -85,9 +85,43 @@ int isVisible() {
         return 0;
     }
 }
+*/
+
+//Parts of this function adapted from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mappings
+int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFragPos) {
+    float bias = 0.001;
+
+    vec3 projectedCoordinates = hemicubeFaceSpaceFragPos.xyz / hemicubeFaceSpaceFragPos.w;
+    projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
+
+    float closestDepth = texture(hemicubeFaceVisibilityTexture, projectedCoordinates.xy).r;
+    float currentDepth = projectedCoordinates.z;
+
+    int shadow = (currentDepth - bias) > closestDepth ? 0 : 1;
+    float zeroDepth = currentDepth - bias;
+
+    if (zeroDepth <= 0) {
+        //Zero means it is in shadow
+        shadow = 0;
+    }
+
+    return shadow;
+}
 
 
 void main() {
+    int isFragmentVisible;
+
+    int centreShadow = isVisible(visibilityTexture, fragPosLightSpace);
+    int leftShadow = isVisible(leftVisibilityTexture, fragPosLeftLightSpace);
+
+    if (centreShadow == 1 || leftShadow == 1) {
+        isFragmentVisible = 1;
+    }
+    else {
+        isFragmentVisible = 0;
+    }
+
     vec3 r = shooterWorldspacePos - fragPos;
 
     //Distance is halved for now
@@ -112,7 +146,7 @@ void main() {
         Fij = 0;
     }
 
-    Fij = Fij * isVisible();
+    Fij = Fij * isFragmentVisible;
 
     vec3 oldIrradianceValue = texture(irradianceTexture, textureCoord).rgb;
     vec3 oldRadianceValue = texture(radianceTexture, textureCoord).rgb;

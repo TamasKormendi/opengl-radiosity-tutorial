@@ -11,7 +11,11 @@ in vec3 ID;
 in vec3 cameraspace_position;
 
 in vec4 fragPosLightSpace;
+
 in vec4 fragPosLeftLightSpace;
+in vec4 fragPosRightLightSpace;
+in vec4 fragPosUpLightSpace;
+in vec4 fragPosDownLightSpace;
 
 uniform vec3 shooterRadiance;
 uniform vec3 shooterWorldspacePos;
@@ -22,7 +26,11 @@ uniform sampler2D irradianceTexture;
 uniform sampler2D radianceTexture;
 
 uniform sampler2D visibilityTexture;
+
 uniform sampler2D leftVisibilityTexture;
+uniform sampler2D rightVisibilityTexture;
+uniform sampler2D upVisibilityTexture;
+uniform sampler2D downVisibilityTexture;
 
 uniform sampler2D texture_diffuse0;
 
@@ -114,8 +122,11 @@ void main() {
 
     int centreShadow = isVisible(visibilityTexture, fragPosLightSpace);
     int leftShadow = isVisible(leftVisibilityTexture, fragPosLeftLightSpace);
+    int rightShadow = isVisible(rightVisibilityTexture, fragPosRightLightSpace);
+    int upShadow = isVisible(upVisibilityTexture, fragPosUpLightSpace);
+    int downShadow = isVisible(downVisibilityTexture, fragPosDownLightSpace);
 
-    if (centreShadow == 1 || leftShadow == 1) {
+    if (centreShadow == 1 || leftShadow == 1 || rightShadow == 1 || upShadow == 1 || downShadow == 1) {
         isFragmentVisible = 1;
     }
     else {

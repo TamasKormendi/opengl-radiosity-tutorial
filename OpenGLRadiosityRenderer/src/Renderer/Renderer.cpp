@@ -634,6 +634,7 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 	return visibilityTexture;
 }
 
+//TODO: This function could definitely use some refactoring down the line, but it does work
 std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	ShaderLoader& hemicubeShader,
 	glm::mat4& mainObjectModelMatrix,
@@ -651,7 +652,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == 1.0f && normalisedShooterNormal.z == 0.0f) {
 		worldUp = glm::vec3(0.0f, 0.0f, -1.0f);
 	}
-	else if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == 1.0f && normalisedShooterNormal.z == 0.0f) {
+	else if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == -1.0f && normalisedShooterNormal.z == 0.0f) {
 		worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
 	}
 
@@ -805,13 +806,174 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 		}
 	}
 
+	unsigned int rightDepthMap;
+	glGenTextures(1, &rightDepthMap);
+	glBindTexture(GL_TEXTURE_2D, rightDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rightDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", rightShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int upDepthMap;
+	glGenTextures(1, &upDepthMap);
+	glBindTexture(GL_TEXTURE_2D, upDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, upDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", upShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int downDepthMap;
+	glGenTextures(1, &downDepthMap);
+	glBindTexture(GL_TEXTURE_2D, downDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, downDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", downShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	std::vector<unsigned int> depthTextures;
 
 	depthTextures.push_back(frontDepthMap);
+
 	depthTextures.push_back(leftDepthMap);
+	depthTextures.push_back(rightDepthMap);
+
+	depthTextures.push_back(upDepthMap);
+	depthTextures.push_back(downDepthMap);
 
 
 	return depthTextures;
@@ -875,7 +1037,13 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 
 		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
+
 		lightmapUpdateShader.setUniformMat4("leftView", viewMatrices[1]);
+		lightmapUpdateShader.setUniformMat4("rightView", viewMatrices[2]);
+
+		lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
+		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
+
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;
@@ -914,6 +1082,18 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		glActiveTexture(GL_TEXTURE10);
 		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 10);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
+
+		glActiveTexture(GL_TEXTURE11);
+		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 11);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
+
+		glActiveTexture(GL_TEXTURE12);
+		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 12);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
+
+		glActiveTexture(GL_TEXTURE13);
+		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 13);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
 
 		if (model.meshes[i].isLamp) {
 			glm::mat4 lampModel = glm::mat4();

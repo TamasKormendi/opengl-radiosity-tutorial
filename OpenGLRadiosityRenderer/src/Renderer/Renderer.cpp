@@ -644,20 +644,55 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 	float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+	glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+	glm::vec3 normalisedShooterNormal = glm::normalize(shooterWorldspaceNormal);
+
+	if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == 1.0f && normalisedShooterNormal.z == 0.0f) {
+		worldUp = glm::vec3(0.0f, 0.0f, -1.0f);
+	}
+	else if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == 1.0f && normalisedShooterNormal.z == 0.0f) {
+		worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	glm::vec3 hemicubeRight = glm::normalize(glm::cross(shooterWorldspaceNormal, worldUp));
+	glm::vec3 hemicubeUp = glm::normalize(glm::cross(hemicubeRight, shooterWorldspaceNormal));
+
+
+	/*
 	glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
 
 	if (upVec.y == 0.0f && upVec.z == 0.0f) {
 		upVec.y = 1.0f;
 	}
+	*/
 
-	glm::mat4 frontShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
-	glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, -shooterWorldspaceNormal.x), upVec);
+
+	glm::mat4 frontShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, hemicubeUp);
+
+	glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + (-hemicubeRight), hemicubeUp);
+	glm::mat4 rightShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + hemicubeRight, hemicubeUp);
+
+	glm::mat4 upShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + hemicubeUp, -normalisedShooterNormal);
+	glm::mat4 downShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + (-hemicubeUp), normalisedShooterNormal);
+
+
+	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, -shooterWorldspaceNormal.x), upVec);
+	//glm::mat4 rightShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(-shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, shooterWorldspaceNormal.x), upVec);
+
+	//glm::vec3 upUpVec = glm::vec3(upVec.x, upVec.z, -upVec.y);
+	//glm
 
 	//This would actually shoot up
-	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(0, 1, 0), glm::vec3(0, 0, -1));
+	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
 
 	viewMatrices.push_back(frontShooterView);
+
 	viewMatrices.push_back(leftShooterView);
+	viewMatrices.push_back(rightShooterView);
+
+	viewMatrices.push_back(upShooterView);
+	viewMatrices.push_back(downShooterView);
 
 
 	unsigned int hemicubeFrontFramebuffer;
@@ -682,6 +717,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 	glViewport(0, 0, resolution, resolution);
 
+	//Need to get rid of this when/if we cut off half of the depth maps
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);

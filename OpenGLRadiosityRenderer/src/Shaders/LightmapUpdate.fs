@@ -103,7 +103,7 @@ int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFra
     if (zeroDepth <= 0) {
         //Zero means it is in shadow
         shadow = 0;
-    }
+    }    
 
     return shadow;
 }

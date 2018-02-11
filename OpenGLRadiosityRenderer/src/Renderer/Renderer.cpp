@@ -93,6 +93,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	//ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	//ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
 	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
+
+	ShaderLoader shooterMeshSelectionShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/ShooterMeshSelection.fs");
+
 	//ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
 	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
 	ShaderLoader finalRenderShader("../src/Shaders/FinalRender.vs", "../src/Shaders/FinalRender.fs");
@@ -108,6 +111,28 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	int iterationNumber = 0;
 
+
+	float shooterMeshSelectionQuadVertices[] = {
+		// positions   // texCoords
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		-1.0f, -1.0f,  0.0f, 0.0f,
+		1.0f, -1.0f,  1.0f, 0.0f,
+
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		1.0f, -1.0f,  1.0f, 0.0f,
+		1.0f,  1.0f,  1.0f, 1.0f
+	};
+
+	unsigned int shooterMeshSelectionQuadVAO, shooterMeshSelectionQuadVBO;
+	glGenVertexArrays(1, &shooterMeshSelectionQuadVAO);
+	glGenBuffers(1, &shooterMeshSelectionQuadVBO);
+	glBindVertexArray(shooterMeshSelectionQuadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, shooterMeshSelectionQuadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(shooterMeshSelectionQuadVertices), &shooterMeshSelectionQuadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 	//Based on https://learnopengl.com/In-Practice/Debugging
 	float quadVertices[] = {
@@ -231,12 +256,16 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glDeleteTextures(1, &debugTexture);
 			}
 
+				selectShooterMesh(mainModel, shooterMeshSelectionShader, shooterMeshSelectionQuadVAO);
+
 				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
 				
+				/*
 				std::cout << shooterWorldspaceNormal.x << std::endl;
 				std::cout << shooterWorldspaceNormal.y << std::endl;
 				std::cout << shooterWorldspaceNormal.z << std::endl;
+				*/
 				
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
@@ -505,6 +534,65 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+//This function draws a 1x1 mipmap of every mesh into a screen-aligned quad, their depth weighted with the mipmap value and reads back the resulting 1x1 texture
+unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shooterMeshSelectionShader, unsigned int& screenAlignedQuadVAO) {
+	unsigned int shooterSelectionFramebuffer;
+
+	glGenFramebuffers(1, &shooterSelectionFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, shooterSelectionFramebuffer);
+
+	unsigned int meshIDTexture;
+
+	glGenTextures(1, &meshIDTexture);
+	glBindTexture(GL_TEXTURE_2D, meshIDTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 1, 1, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, meshIDTexture, 0);
+
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1, 1);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, attachments);
+
+	glViewport(0, 0, 1, 1);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	shooterMeshSelectionShader.useProgram();
+	glBindVertexArray(screenAlignedQuadVAO);
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+	}
+
+	std::vector<GLfloat> shooterMeshID(1 * 1 * 3);
+
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glReadPixels(0, 0, 1, 1, GL_RGB, GL_FLOAT, &shooterMeshID[0]);
+
+	std::cout << "Shooter mesh ID R: " << shooterMeshID[0] << std::endl;
+	std::cout << "Shooter mesh ID G: " << shooterMeshID[1] << std::endl;
+	std::cout << "Shooter mesh ID B: " << shooterMeshID[2] << std::endl;
+
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindVertexArray(0);
+	glUseProgram(0);
+
+	//Dummy return for now, also need to delete whatever we need to delete before this
+	return 0;
+}
 
 //Only to be called after the preprocess function
 //Do note that this function is incredibly slow - in a final version this functionality would be optimally handled on the GPU but for now, this is sufficient

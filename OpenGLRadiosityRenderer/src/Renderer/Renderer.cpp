@@ -572,7 +572,29 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 	shooterMeshSelectionShader.useProgram();
 	glBindVertexArray(screenAlignedQuadVAO);
 
+
+	//unsigned int meshID = 0;
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+		unsigned int meshID = i;
+
+		float redValue = meshID % 100;
+
+		int greenRemainingValue = (int)meshID / 100;
+
+		float greenValue = greenRemainingValue % 100;
+
+		int blueRemainingValue = (int)greenRemainingValue / 100;
+
+		float blueValue = blueRemainingValue % 100;
+
+		redValue = redValue / 100.0f;
+		greenValue = greenValue / 100.0f;
+		blueValue = blueValue / 100.0f;
+
+		glm::vec3 meshIDVector = glm::vec3(redValue, greenValue, blueValue);
+
+		shooterMeshSelectionShader.setUniformVec3("meshID", meshIDVector);
+
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
@@ -584,6 +606,15 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 	std::cout << "Shooter mesh ID R: " << shooterMeshID[0] << std::endl;
 	std::cout << "Shooter mesh ID G: " << shooterMeshID[1] << std::endl;
 	std::cout << "Shooter mesh ID B: " << shooterMeshID[2] << std::endl;
+
+	unsigned int chosenShooterMeshID = 0;
+
+	//The rounding is needed because the program otherwise thought 0.59 * 100 is 58...yeah
+	chosenShooterMeshID += std::round(100 * 100 * 100 * shooterMeshID[2]);
+	chosenShooterMeshID += std::round(100 * 100 * shooterMeshID[1]);
+	chosenShooterMeshID += std::round(100 * shooterMeshID[0]);
+
+	std::cout << "Chosen shooter mesh ID is: " << chosenShooterMeshID << std::endl;
 
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

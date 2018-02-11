@@ -4,7 +4,9 @@ layout (location = 0) out vec3 shooterMeshID;
 
 in vec2 TexCoords;
 
+uniform vec3 meshID;
+
 void main() {
     //Values for testing output
-    shooterMeshID = vec3(0.67, 0.000001, 3.2);
+    shooterMeshID = meshID;
 }

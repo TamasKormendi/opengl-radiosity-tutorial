@@ -595,7 +595,23 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 
 		shooterMeshSelectionShader.setUniformVec3("meshID", meshIDVector);
 
+		unsigned int mipmappedRadianceTexture;
+
+		glGenTextures(1, &mipmappedRadianceTexture);
+		glBindTexture(GL_TEXTURE_2D, mipmappedRadianceTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].radianceData[0]);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		glActiveTexture(GL_TEXTURE0);
+		shooterMeshSelectionShader.setUniformInt("mipmappedRadianceTexture", 0);
+		glBindTexture(GL_TEXTURE_2D, mipmappedRadianceTexture);
+
+
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glDeleteTextures(1, &mipmappedRadianceTexture);
 	}
 
 	std::vector<GLfloat> shooterMeshID(1 * 1 * 3);
@@ -622,7 +638,7 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 	glUseProgram(0);
 
 	//Dummy return for now, also need to delete whatever we need to delete before this
-	return 0;
+	return chosenShooterMeshID;
 }
 
 //Only to be called after the preprocess function
@@ -1193,7 +1209,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
 		glBindTexture(GL_TEXTURE_2D, radianceID);
 		
-		//Also bind the visibility texture
+		//Also bind the visibility textures, they're a bit scattered for now
 		glActiveTexture(GL_TEXTURE2);
 		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);

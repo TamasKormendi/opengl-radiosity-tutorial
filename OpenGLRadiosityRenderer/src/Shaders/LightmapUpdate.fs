@@ -170,7 +170,7 @@ void main() {
     //Clamping the values and zeroing out the shooter is missing for now
     //Update: this is how values are clamped for now, shooter zeroing is done in the shooter selection function
 
-    //newIrradianceValue = vec3(isVisible(), isVisible(), isVisible());
+    //newIrradianceValue = vec3(isFragmentVisible, isFragmentVisible, isFragmentVisible);
 
     newIrradianceValue = oldIrradianceValue + deltaIrradiance;
 

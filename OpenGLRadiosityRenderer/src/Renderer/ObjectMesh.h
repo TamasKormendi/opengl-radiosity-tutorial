@@ -40,6 +40,8 @@ public:
 	std::vector<GLfloat> idData;
 	std::vector<GLfloat> uvData;
 
+	std::vector<unsigned int> texturespaceShooterIndices;
+
 	bool isLamp;
 
 	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp);

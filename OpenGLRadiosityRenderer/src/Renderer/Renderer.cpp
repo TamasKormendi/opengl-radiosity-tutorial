@@ -518,6 +518,18 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		model.meshes[i].worldspaceNormalData = normalVectorDataBuffer;
 		model.meshes[i].idData = idDataBuffer;
 		model.meshes[i].uvData = uvDataBuffer;
+
+		for (unsigned int j = 0; j < model.meshes[i].idData.size(); j += 3) {
+			float redIDValue = model.meshes[i].idData[j];
+			float greenIDValue = model.meshes[i].idData[j + 1];
+			float blueIDValue = model.meshes[i].idData[j + 2];
+
+			float idSum = redIDValue + greenIDValue + blueIDValue;
+
+			if (idSum > 0) {
+				model.meshes[i].texturespaceShooterIndices.push_back(j);
+			}
+		}
 	}
 
 	/*
@@ -575,6 +587,7 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 
 	//unsigned int meshID = 0;
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
 		unsigned int meshID = i;
 
 		float redValue = meshID % 100;

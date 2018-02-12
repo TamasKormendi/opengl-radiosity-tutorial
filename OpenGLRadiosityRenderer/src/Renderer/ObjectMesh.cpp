@@ -40,6 +40,8 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 	idData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
 	uvData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
 
+	texturespaceShooterIndices = std::vector<unsigned int>();
+
 	setupMesh();
 }
 

@@ -34,6 +34,8 @@ uniform sampler2D downVisibilityTexture;
 
 uniform sampler2D texture_diffuse0;
 
+uniform bool isLamp;
+
 /*
 int isVisible() {
     vec3 projectedPos = normalize(cameraspace_position);
@@ -136,9 +138,12 @@ void main() {
     vec3 r = shooterWorldspacePos - fragPos;
 
     //Distance is halved for now
-    r = r / 2;
+    //r = r / 2;
 
     float distanceSquared = dot(r, r);
+
+    float distanceLinear = sqrt(distanceSquared);
+
     r = normalize(r);
 
     float cosi = dot(normal, r);
@@ -151,7 +156,7 @@ void main() {
     //This if avoids division by 0
     if (distanceSquared > 0) {
         //Removed pi for now
-        Fij = max(cosi * cosj, 0) / (distanceSquared);
+        Fij = max(cosi * cosj, 0) / (distanceLinear);
     }
     else {
         Fij = 0;
@@ -172,10 +177,18 @@ void main() {
 
     //newIrradianceValue = vec3(isFragmentVisible, isFragmentVisible, isFragmentVisible);
 
+    if (isLamp) {
+        newIrradianceValue = oldIrradianceValue;
+        newRadianceValue = oldRadianceValue;
+    }
+    else {
+        
     newIrradianceValue = oldIrradianceValue + deltaIrradiance;
 
 
     //Instead of this, normalising the value if any exceeds 1 might be more sensible    
+
+    
     if (newIrradianceValue.r > 1) {
         newIrradianceValue.r = 1;
     }
@@ -185,6 +198,7 @@ void main() {
     if (newIrradianceValue.b > 1) {
         newIrradianceValue.b = 1;
     }
+    
     
 
     newRadianceValue = oldRadianceValue + deltaRadiance;
@@ -200,6 +214,11 @@ void main() {
     if (newRadianceValue.b > diffuseValue.b) {
         newRadianceValue.b = diffuseValue.b;
     }
+
+    }
+
+
+    
     
 
 }

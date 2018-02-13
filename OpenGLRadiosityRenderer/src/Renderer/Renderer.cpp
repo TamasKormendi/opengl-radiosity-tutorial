@@ -50,6 +50,10 @@ bool doRadiosityIteration = false;
 //TODO: Change this to a sensible ENUM
 unsigned int preprocessDone = 0;
 
+bool meshSelectionNeeded = true;
+unsigned int shooterIndex = 0;
+unsigned int shooterMesh = 0;
+
 Renderer::Renderer() {
 
 }
@@ -159,6 +163,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	bool debugInitialised = false;
 	unsigned int debugTexture = 0;
+	std::vector<unsigned int> debugTextures = std::vector<unsigned int>();
 
 
 	//RENDER LOOP STARTS HERE
@@ -253,20 +258,35 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			//for (int i = 0; i < 100; ++i) {
 
 			if (debugInitialised) {
-				glDeleteTextures(1, &debugTexture);
+				//glDeleteTextures(1, &debugTexture);
+
+				for (unsigned int debugTexture : debugTextures) {
+					glDeleteTextures(1, &debugTexture);
+				}
 			}
 
-				selectShooterMesh(mainModel, shooterMeshSelectionShader, shooterMeshSelectionQuadVAO);
 
-				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
-				
+			if (meshSelectionNeeded) {
+				shooterMesh = selectShooterMesh(mainModel, shooterMeshSelectionShader, shooterMeshSelectionQuadVAO);
+
+				meshSelectionNeeded = false;
+			}
+
+			while (!meshSelectionNeeded) {
+				selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
+
+
+
+				//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
+
+
 				/*
 				std::cout << shooterWorldspaceNormal.x << std::endl;
 				std::cout << shooterWorldspaceNormal.y << std::endl;
 				std::cout << shooterWorldspaceNormal.z << std::endl;
 				*/
-				
+
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
 				/*
@@ -292,12 +312,16 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				std::vector<unsigned int> visibilityTextures = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterViews, visibilityTextureSize, shooterWorldspacePos, shooterWorldspaceNormal);
 
+				debugTextures = visibilityTextures;
+
 				debugTexture = visibilityTextures[1];
 				debugInitialised = true;
 
+				/*
 				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
 				std::cout << "Shooter green " << shooterRadiance.y << std::endl;
 				std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
+				*/
 
 				//Scale down the shooter's strength - COMMENTED OUT FOR NOW
 				//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
@@ -317,6 +341,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				//glDeleteTextures(1, &visibilityTexture);
 
+				for (unsigned int debugTexture : debugTextures) {
+					glDeleteTextures(1, &debugTexture);
+				}
+
 				std::cout << iterationNumber << std::endl;
 
 				++iterationNumber;
@@ -324,7 +352,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//std::cout << i << std::endl;
 
 			//}
-
+			}
 			//Uncomment this to resume manual iteration
 			doRadiosityIteration = false;
 		}
@@ -392,7 +420,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			}
 		}
 
-		if (debugInitialised) {
+		if (false) {
 			displayFramebufferTexture(framebufferDebugShader, quadVAO, debugTexture);
 		}
 		
@@ -651,7 +679,44 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 	glUseProgram(0);
 
 	//Dummy return for now, also need to delete whatever we need to delete before this
+	glDeleteFramebuffers(1, &shooterSelectionFramebuffer);
+	glDeleteRenderbuffers(1, &depth);
+	glDeleteTextures(1, &meshIDTexture);
+
 	return chosenShooterMeshID;
+}
+
+void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, unsigned int& shooterMeshIndex) {
+	unsigned int texelIndex = model.meshes[shooterMeshIndex].texturespaceShooterIndices[shooterIndex];
+
+	shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+								model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+								model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
+
+	shooterWorldspacePos = glm::vec3(model.meshes[shooterMeshIndex].worldspacePosData[texelIndex], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 2]);
+
+	shooterWorldspaceNormal = glm::vec3(model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex], model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex + 2]);
+
+	shooterUV = glm::vec3(model.meshes[shooterMeshIndex].uvData[texelIndex], model.meshes[shooterMeshIndex].uvData[texelIndex + 1], model.meshes[shooterMeshIndex].uvData[texelIndex + 2]);
+
+
+	model.meshes[shooterMeshIndex].radianceData[texelIndex] = 0.0f;
+	model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] = 0.0f;
+	model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] = 0.0f;
+
+	
+	//std::cout << "Processing shooter number " << shooterIndex << " out of " << model.meshes[shooterMeshIndex].texturespaceShooterIndices.size();
+
+	if (shooterIndex >= model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() - 1) {
+		meshSelectionNeeded = true;
+
+		shooterIndex = 0;
+	}
+	else {
+		++shooterIndex;
+	}
+
+
 }
 
 //Only to be called after the preprocess function
@@ -1123,6 +1188,8 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	depthTextures.push_back(upDepthMap);
 	depthTextures.push_back(downDepthMap);
 
+	glDeleteFramebuffers(1, &hemicubeFrontFramebuffer);
+
 
 	return depthTextures;
 }
@@ -1250,6 +1317,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
 
 			lightmapUpdateShader.setUniformMat4("model", lampModel);
+			lightmapUpdateShader.setUniformBool("isLamp", true);
 
 			model.meshes[i].draw(lightmapUpdateShader);
 
@@ -1257,6 +1325,8 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		}
 		else {
 			lightmapUpdateShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			lightmapUpdateShader.setUniformBool("isLamp", false);
 
 			model.meshes[i].draw(lightmapUpdateShader);
 		}

@@ -11,6 +11,7 @@ out vec2 textureCoord;
 out vec3 ID;
 
 out vec4 fragPosLightSpace;
+out vec3 normalLightSpace;
 
 out vec4 fragPosLeftLightSpace;
 out vec4 fragPosRightLightSpace;
@@ -32,6 +33,8 @@ void main() {
     fragPos = vec3(model * vec4(vertexPos, 1.0));
 
     normal = mat3(transpose(inverse(model))) * inNormal;
+
+    normalLightSpace = mat3(transpose(inverse(view * model))) * inNormal;
 
     textureCoord = inTextureCoord;
 

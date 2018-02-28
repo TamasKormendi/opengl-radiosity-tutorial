@@ -9,6 +9,7 @@ in vec2 textureCoord;
 in vec3 ID;
 
 in vec3 cameraspace_position;
+in vec3 normalLightSpace;
 
 in vec4 fragPosLightSpace;
 
@@ -101,6 +102,8 @@ int isVisible() {
 int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFragPos) {
     float bias = 0.001;
 
+    //float bias = max(0.0006 * ( dot(normal, shooterWorldspaceNormal)), 0.0003);  
+
     vec3 projectedCoordinates = hemicubeFaceSpaceFragPos.xyz / hemicubeFaceSpaceFragPos.w;
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
 
@@ -120,6 +123,8 @@ int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFra
 
 
 void main() {
+
+
     int isFragmentVisible;
 
     int centreShadow = isVisible(visibilityTexture, fragPosLightSpace);
@@ -153,10 +158,36 @@ void main() {
 
     float Fij = 0.0;
 
+    ///
+    //Fixed and adapted from http://sirkan.iit.bme.hu/~szirmay/gpugi1.pdf
+    //TODO: Rename variables to ones fitting the rest of the project
+
+    vec3 ytox = normalize(-cameraspace_position);
+    float xydist2 = dot(cameraspace_position, cameraspace_position);
+    float cthetax = dot(normalLightSpace, ytox);
+
+    if (cthetax < 0) {
+        cthetax = 0;
+    }
+
+    vec3 ynorm = vec3(0, 0, 1);
+    float cthetay = ytox.z;
+
+    if (cthetay < 0) {
+        cthetay = 0;
+    } 
+
+
+    ///
+
     //This if avoids division by 0
-    if (distanceSquared > 0) {
-        //Removed pi for now
-        Fij = max(cosi * cosj, 0) / (distanceLinear);
+    if (xydist2 > 0) {
+        float G = cthetax * cthetay / xydist2;
+
+        //Removed pi for now and using only linear attenuation now
+        //Fij = max(cosi * cosj, 0) / (distanceSquared);
+
+        Fij = G;
     }
     else {
         Fij = 0;
@@ -183,37 +214,38 @@ void main() {
     }
     else {
         
-    newIrradianceValue = oldIrradianceValue + deltaIrradiance;
+        newIrradianceValue = oldIrradianceValue + deltaIrradiance;
+
+        //newIrradianceValue = vec3(isFragmentVisible, isFragmentVisible, isFragmentVisible);
+
+        //Instead of this, normalising the value if any exceeds 1 might be more sensible    
+
+        
+        if (newIrradianceValue.r > 1) {
+            newIrradianceValue.r = 1;
+        }
+        if (newIrradianceValue.g > 1) {
+            newIrradianceValue.g = 1;
+        }
+        if (newIrradianceValue.b > 1) {
+            newIrradianceValue.b = 1;
+        }
+        
+        
+
+        newRadianceValue = oldRadianceValue + deltaRadiance;
 
 
-    //Instead of this, normalising the value if any exceeds 1 might be more sensible    
-
-    
-    if (newIrradianceValue.r > 1) {
-        newIrradianceValue.r = 1;
-    }
-    if (newIrradianceValue.g > 1) {
-        newIrradianceValue.g = 1;
-    }
-    if (newIrradianceValue.b > 1) {
-        newIrradianceValue.b = 1;
-    }
-    
-    
-
-    newRadianceValue = oldRadianceValue + deltaRadiance;
-
-
-    
-    if (newRadianceValue.r > diffuseValue.r) {
-        newRadianceValue.r = diffuseValue.r;
-    }
-    if (newRadianceValue.g > diffuseValue.g) {
-        newRadianceValue.g = diffuseValue.g;
-    }
-    if (newRadianceValue.b > diffuseValue.b) {
-        newRadianceValue.b = diffuseValue.b;
-    }
+        
+        if (newRadianceValue.r > diffuseValue.r) {
+            newRadianceValue.r = diffuseValue.r;
+        }
+        if (newRadianceValue.g > diffuseValue.g) {
+            newRadianceValue.g = diffuseValue.g;
+        }
+        if (newRadianceValue.b > diffuseValue.b) {
+            newRadianceValue.b = diffuseValue.b;
+        }
 
     }
 

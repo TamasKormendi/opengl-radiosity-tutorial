@@ -27,7 +27,7 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 
 	if (isLamp) {
 		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
-		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
+		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 6.0f);
 	}
 	else {
 		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
@@ -39,6 +39,8 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 
 	idData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
 	uvData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
+
+	texturespaceShooterIndices = std::vector<unsigned int>();
 
 	setupMesh();
 }

@@ -34,7 +34,7 @@ void Triangle::calculateRGBID() {
 	float blueValue = blueRemainingValue % 256;
 
 	redValue = redValue / 255.0f;
-	greenValue = greenRemainingValue / 255.0f;
+	greenValue = greenValue / 255.0f;
 	blueValue = blueValue / 255.0f;
 
 	glm::vec3 idVector = glm::vec3(redValue, greenValue, blueValue);
@@ -44,6 +44,6 @@ void Triangle::calculateRGBID() {
 	vertex3.rgbID = idVector;
 
 	//Switched the per-triangle difference to 10 to avoid precision issues
-	integerID += 1;
+	integerID += 10;
 }
 

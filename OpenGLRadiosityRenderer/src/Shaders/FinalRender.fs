@@ -28,5 +28,7 @@ void main() {
 
     result += irradianceValue * diffuseValue;
 
+    result = pow(result, vec3(1.0/2.2));
+
     fragColour = vec4(result, 1.0);
 }

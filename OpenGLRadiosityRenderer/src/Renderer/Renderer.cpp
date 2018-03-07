@@ -50,6 +50,10 @@ bool doRadiosityIteration = false;
 //TODO: Change this to a sensible ENUM
 unsigned int preprocessDone = 0;
 
+bool meshSelectionNeeded = true;
+unsigned int shooterIndex = 0;
+unsigned int shooterMesh = 0;
+
 Renderer::Renderer() {
 
 }
@@ -93,10 +97,15 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	//ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	//ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
 	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
-	ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
+
+	ShaderLoader shooterMeshSelectionShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/ShooterMeshSelection.fs");
+
+	//ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
 	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
 	ShaderLoader finalRenderShader("../src/Shaders/FinalRender.vs", "../src/Shaders/FinalRender.fs");
 	ShaderLoader framebufferDebugShader("../src/Shaders/FramebufferDebug.vs", "../src/Shaders/FramebufferDebug.fs");
+
+	ShaderLoader hemicubeVisibilityShader("../src/Shaders/HemicubeVisibilityTexture.vs", "../src/Shaders/HemicubeVisibilityTexture.fs");
 
 	ObjectModel mainModel(objectFilepath, false);
 	ObjectModel lampModel("../assets/lamp.obj", true);
@@ -106,6 +115,28 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	int iterationNumber = 0;
 
+
+	float shooterMeshSelectionQuadVertices[] = {
+		// positions   // texCoords
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		-1.0f, -1.0f,  0.0f, 0.0f,
+		1.0f, -1.0f,  1.0f, 0.0f,
+
+		-1.0f,  1.0f,  0.0f, 1.0f,
+		1.0f, -1.0f,  1.0f, 0.0f,
+		1.0f,  1.0f,  1.0f, 1.0f
+	};
+
+	unsigned int shooterMeshSelectionQuadVAO, shooterMeshSelectionQuadVBO;
+	glGenVertexArrays(1, &shooterMeshSelectionQuadVAO);
+	glGenBuffers(1, &shooterMeshSelectionQuadVBO);
+	glBindVertexArray(shooterMeshSelectionQuadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, shooterMeshSelectionQuadVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(shooterMeshSelectionQuadVertices), &shooterMeshSelectionQuadVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 	//Based on https://learnopengl.com/In-Practice/Debugging
 	float quadVertices[] = {
@@ -132,6 +163,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	bool debugInitialised = false;
 	unsigned int debugTexture = 0;
+	std::vector<unsigned int> debugTextures = std::vector<unsigned int>();
 
 
 	//RENDER LOOP STARTS HERE
@@ -226,18 +258,38 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			//for (int i = 0; i < 100; ++i) {
 
 			if (debugInitialised) {
-				glDeleteTextures(1, &debugTexture);
+				//glDeleteTextures(1, &debugTexture);
+
+				for (unsigned int debugTexture : debugTextures) {
+					glDeleteTextures(1, &debugTexture);
+				}
 			}
 
-				selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
-				
+
+			if (meshSelectionNeeded) {
+				shooterMesh = selectShooterMesh(mainModel, shooterMeshSelectionShader, shooterMeshSelectionQuadVAO);
+
+				meshSelectionNeeded = false;
+			}
+
+			while (!meshSelectionNeeded) {
+				selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
+
+
+
+				//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
+
+
+				/*
 				std::cout << shooterWorldspaceNormal.x << std::endl;
 				std::cout << shooterWorldspaceNormal.y << std::endl;
 				std::cout << shooterWorldspaceNormal.z << std::endl;
-				
+				*/
+
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
+				/*
 				glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
 
 				if (upVec.y == 0.0f && upVec.z == 0.0f) {
@@ -245,17 +297,31 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				}
 
 				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
+				*/
+
+				std::vector<glm::mat4> shooterViews;
 
 				unsigned int visibilityTextureSize = 1024;
 
-				unsigned int visibilityTexture = createVisibilityTexture(mainModel, visibilityTextureShader, model, shooterView, visibilityTextureSize);
+				glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 
-				debugTexture = visibilityTexture;
+				hemicubeVisibilityShader.useProgram();
+				hemicubeVisibilityShader.setUniformMat4("projection", shooterProj);
+
+				//unsigned int visibilityTexture = createVisibilityTexture(mainModel, hemicubeVisibilityShader, model, shooterView, visibilityTextureSize);
+
+				std::vector<unsigned int> visibilityTextures = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterViews, visibilityTextureSize, shooterWorldspacePos, shooterWorldspaceNormal);
+
+				debugTextures = visibilityTextures;
+
+				debugTexture = visibilityTextures[1];
 				debugInitialised = true;
 
+				/*
 				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
 				std::cout << "Shooter green " << shooterRadiance.y << std::endl;
 				std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
+				*/
 
 				//Scale down the shooter's strength - COMMENTED OUT FOR NOW
 				//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
@@ -269,9 +335,15 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
 				lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
 
-				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterView, visibilityTexture);
+				//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
+
+				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
 
 				//glDeleteTextures(1, &visibilityTexture);
+
+				for (unsigned int debugTexture : debugTextures) {
+					glDeleteTextures(1, &debugTexture);
+				}
 
 				std::cout << iterationNumber << std::endl;
 
@@ -280,7 +352,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//std::cout << i << std::endl;
 
 			//}
-
+			}
 			//Uncomment this to resume manual iteration
 			doRadiosityIteration = false;
 		}
@@ -348,7 +420,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			}
 		}
 
-		if (debugInitialised) {
+		if (false) {
 			displayFramebufferTexture(framebufferDebugShader, quadVAO, debugTexture);
 		}
 		
@@ -474,6 +546,18 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		model.meshes[i].worldspaceNormalData = normalVectorDataBuffer;
 		model.meshes[i].idData = idDataBuffer;
 		model.meshes[i].uvData = uvDataBuffer;
+
+		for (unsigned int j = 0; j < model.meshes[i].idData.size(); j += 3) {
+			float redIDValue = model.meshes[i].idData[j];
+			float greenIDValue = model.meshes[i].idData[j + 1];
+			float blueIDValue = model.meshes[i].idData[j + 2];
+
+			float idSum = redIDValue + greenIDValue + blueIDValue;
+
+			if (idSum > 0) {
+				model.meshes[i].texturespaceShooterIndices.push_back(j);
+			}
+		}
 	}
 
 	/*
@@ -490,6 +574,150 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+//This function draws a 1x1 mipmap of every mesh into a screen-aligned quad, their depth weighted with the mipmap value and reads back the resulting 1x1 texture
+unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shooterMeshSelectionShader, unsigned int& screenAlignedQuadVAO) {
+	unsigned int shooterSelectionFramebuffer;
+
+	glGenFramebuffers(1, &shooterSelectionFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, shooterSelectionFramebuffer);
+
+	unsigned int meshIDTexture;
+
+	glGenTextures(1, &meshIDTexture);
+	glBindTexture(GL_TEXTURE_2D, meshIDTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 1, 1, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, meshIDTexture, 0);
+
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1, 1);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, attachments);
+
+	glViewport(0, 0, 1, 1);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	shooterMeshSelectionShader.useProgram();
+	glBindVertexArray(screenAlignedQuadVAO);
+
+
+	//unsigned int meshID = 0;
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		unsigned int meshID = i;
+
+		float redValue = meshID % 100;
+
+		int greenRemainingValue = (int)meshID / 100;
+
+		float greenValue = greenRemainingValue % 100;
+
+		int blueRemainingValue = (int)greenRemainingValue / 100;
+
+		float blueValue = blueRemainingValue % 100;
+
+		redValue = redValue / 100.0f;
+		greenValue = greenValue / 100.0f;
+		blueValue = blueValue / 100.0f;
+
+		glm::vec3 meshIDVector = glm::vec3(redValue, greenValue, blueValue);
+
+		shooterMeshSelectionShader.setUniformVec3("meshID", meshIDVector);
+
+		unsigned int mipmappedRadianceTexture;
+
+		glGenTextures(1, &mipmappedRadianceTexture);
+		glBindTexture(GL_TEXTURE_2D, mipmappedRadianceTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].radianceData[0]);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		glActiveTexture(GL_TEXTURE0);
+		shooterMeshSelectionShader.setUniformInt("mipmappedRadianceTexture", 0);
+		glBindTexture(GL_TEXTURE_2D, mipmappedRadianceTexture);
+
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glDeleteTextures(1, &mipmappedRadianceTexture);
+	}
+
+	std::vector<GLfloat> shooterMeshID(1 * 1 * 3);
+
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glReadPixels(0, 0, 1, 1, GL_RGB, GL_FLOAT, &shooterMeshID[0]);
+
+	std::cout << "Shooter mesh ID R: " << shooterMeshID[0] << std::endl;
+	std::cout << "Shooter mesh ID G: " << shooterMeshID[1] << std::endl;
+	std::cout << "Shooter mesh ID B: " << shooterMeshID[2] << std::endl;
+
+	unsigned int chosenShooterMeshID = 0;
+
+	//The rounding is needed because the program otherwise thought 0.59 * 100 is 58...yeah
+	chosenShooterMeshID += std::round(100 * 100 * 100 * shooterMeshID[2]);
+	chosenShooterMeshID += std::round(100 * 100 * shooterMeshID[1]);
+	chosenShooterMeshID += std::round(100 * shooterMeshID[0]);
+
+	std::cout << "Chosen shooter mesh ID is: " << chosenShooterMeshID << std::endl;
+
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindVertexArray(0);
+	glUseProgram(0);
+
+	//Dummy return for now, also need to delete whatever we need to delete before this
+	glDeleteFramebuffers(1, &shooterSelectionFramebuffer);
+	glDeleteRenderbuffers(1, &depth);
+	glDeleteTextures(1, &meshIDTexture);
+
+	return chosenShooterMeshID;
+}
+
+void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, unsigned int& shooterMeshIndex) {
+	unsigned int texelIndex = model.meshes[shooterMeshIndex].texturespaceShooterIndices[shooterIndex];
+
+	shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+								model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+								model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
+
+	shooterWorldspacePos = glm::vec3(model.meshes[shooterMeshIndex].worldspacePosData[texelIndex], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 2]);
+
+	shooterWorldspaceNormal = glm::vec3(model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex], model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex + 2]);
+
+	shooterUV = glm::vec3(model.meshes[shooterMeshIndex].uvData[texelIndex], model.meshes[shooterMeshIndex].uvData[texelIndex + 1], model.meshes[shooterMeshIndex].uvData[texelIndex + 2]);
+
+
+	model.meshes[shooterMeshIndex].radianceData[texelIndex] = 0.0f;
+	model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] = 0.0f;
+	model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] = 0.0f;
+
+	
+	//std::cout << "Processing shooter number " << shooterIndex << " out of " << model.meshes[shooterMeshIndex].texturespaceShooterIndices.size();
+
+	if (shooterIndex >= model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() - 1) {
+		meshSelectionNeeded = true;
+
+		shooterIndex = 0;
+	}
+	else {
+		++shooterIndex;
+	}
+
+
+}
 
 //Only to be called after the preprocess function
 //Do note that this function is incredibly slow - in a final version this functionality would be optimally handled on the GPU but for now, this is sufficient
@@ -619,8 +847,355 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 	return visibilityTexture;
 }
 
+//TODO: This function could definitely use some refactoring down the line, but it does work
+std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
+	ShaderLoader& hemicubeShader,
+	glm::mat4& mainObjectModelMatrix,
+	std::vector<glm::mat4>& viewMatrices,
+	unsigned int& resolution,
+	glm::vec3& shooterWorldspacePos,
+	glm::vec3& shooterWorldspaceNormal) {
+
+	float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+	glm::vec3 normalisedShooterNormal = glm::normalize(shooterWorldspaceNormal);
+
+	if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == 1.0f && normalisedShooterNormal.z == 0.0f) {
+		worldUp = glm::vec3(0.0f, 0.0f, -1.0f);
+	}
+	else if (normalisedShooterNormal.x == 0.0f && normalisedShooterNormal.y == -1.0f && normalisedShooterNormal.z == 0.0f) {
+		worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	glm::vec3 hemicubeRight = glm::normalize(glm::cross(shooterWorldspaceNormal, worldUp));
+	glm::vec3 hemicubeUp = glm::normalize(glm::cross(hemicubeRight, shooterWorldspaceNormal));
+
+
+	/*
+	glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
+
+	if (upVec.y == 0.0f && upVec.z == 0.0f) {
+		upVec.y = 1.0f;
+	}
+	*/
+
+
+	glm::mat4 frontShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, hemicubeUp);
+
+	glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + (-hemicubeRight), hemicubeUp);
+	glm::mat4 rightShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + hemicubeRight, hemicubeUp);
+
+	glm::mat4 upShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + hemicubeUp, -normalisedShooterNormal);
+	glm::mat4 downShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + (-hemicubeUp), normalisedShooterNormal);
+
+
+	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, -shooterWorldspaceNormal.x), upVec);
+	//glm::mat4 rightShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(-shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, shooterWorldspaceNormal.x), upVec);
+
+	//glm::vec3 upUpVec = glm::vec3(upVec.x, upVec.z, -upVec.y);
+	//glm
+
+	//This would actually shoot up
+	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
+
+	viewMatrices.push_back(frontShooterView);
+
+	viewMatrices.push_back(leftShooterView);
+	viewMatrices.push_back(rightShooterView);
+
+	viewMatrices.push_back(upShooterView);
+	viewMatrices.push_back(downShooterView);
+
+
+	unsigned int hemicubeFrontFramebuffer;
+	glGenFramebuffers(1, &hemicubeFrontFramebuffer);
+
+	unsigned int frontDepthMap;
+	glGenTextures(1, &frontDepthMap);
+	glBindTexture(GL_TEXTURE_2D, frontDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, frontDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	//Need to get rid of this when/if we cut off half of the depth maps
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
+
+	int lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", frontShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int leftDepthMap;
+	glGenTextures(1, &leftDepthMap);
+	glBindTexture(GL_TEXTURE_2D, leftDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, leftDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", leftShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int rightDepthMap;
+	glGenTextures(1, &rightDepthMap);
+	glBindTexture(GL_TEXTURE_2D, rightDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rightDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", rightShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int upDepthMap;
+	glGenTextures(1, &upDepthMap);
+	glBindTexture(GL_TEXTURE_2D, upDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, upDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", upShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	unsigned int downDepthMap;
+	glGenTextures(1, &downDepthMap);
+	glBindTexture(GL_TEXTURE_2D, downDepthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, downDepthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+
+	glViewport(0, 0, resolution, resolution);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+		hemicubeShader.useProgram();
+
+
+		hemicubeShader.setUniformMat4("projection", shooterProj);
+
+		hemicubeShader.setUniformMat4("view", downShooterView);
+
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			hemicubeShader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(hemicubeShader);
+
+			++lampCounter;
+		}
+		else {
+			hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(hemicubeShader);
+		}
+	}
+
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	std::vector<unsigned int> depthTextures;
+
+	depthTextures.push_back(frontDepthMap);
+
+	depthTextures.push_back(leftDepthMap);
+	depthTextures.push_back(rightDepthMap);
+
+	depthTextures.push_back(upDepthMap);
+	depthTextures.push_back(downDepthMap);
+
+	glDeleteFramebuffers(1, &hemicubeFrontFramebuffer);
+
+
+	return depthTextures;
+}
+
 //The shooter information has to be bound to the lightmapUpdateShader before calling this function
-void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& visibilityTexture) {
+void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures) {
 	unsigned int lightmapFramebuffer;
 
 	glGenFramebuffers(1, &lightmapFramebuffer);
@@ -671,7 +1246,19 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		std::vector<GLfloat> newIrradianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 		std::vector<GLfloat> newRadianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 
-		lightmapUpdateShader.setUniformMat4("view", viewMatrix);
+		glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
+
+		lightmapUpdateShader.useProgram();
+		lightmapUpdateShader.setUniformMat4("projection", shooterProj);
+
+		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
+
+		lightmapUpdateShader.setUniformMat4("leftView", viewMatrices[1]);
+		lightmapUpdateShader.setUniformMat4("rightView", viewMatrices[2]);
+
+		lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
+		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
+
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;
@@ -702,10 +1289,26 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
 		glBindTexture(GL_TEXTURE_2D, radianceID);
 		
-		//Also bind the visibility texture
+		//Also bind the visibility textures, they're a bit scattered for now
 		glActiveTexture(GL_TEXTURE2);
 		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
-		glBindTexture(GL_TEXTURE_2D, visibilityTexture);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
+
+		glActiveTexture(GL_TEXTURE10);
+		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 10);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
+
+		glActiveTexture(GL_TEXTURE11);
+		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 11);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
+
+		glActiveTexture(GL_TEXTURE12);
+		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 12);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
+
+		glActiveTexture(GL_TEXTURE13);
+		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 13);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
 
 		if (model.meshes[i].isLamp) {
 			glm::mat4 lampModel = glm::mat4();
@@ -714,6 +1317,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
 
 			lightmapUpdateShader.setUniformMat4("model", lampModel);
+			lightmapUpdateShader.setUniformBool("isLamp", true);
 
 			model.meshes[i].draw(lightmapUpdateShader);
 
@@ -721,6 +1325,8 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		}
 		else {
 			lightmapUpdateShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			lightmapUpdateShader.setUniformBool("isLamp", false);
 
 			model.meshes[i].draw(lightmapUpdateShader);
 		}
@@ -744,7 +1350,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 	glDeleteRenderbuffers(1, &depth);
 	glDeleteFramebuffers(1, &lightmapFramebuffer);
 
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	//glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

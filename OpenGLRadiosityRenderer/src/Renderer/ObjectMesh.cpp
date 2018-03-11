@@ -35,7 +35,7 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 	}
 
 	worldspacePosData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
-	worldspaceNormalData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
+	worldspaceNormalData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 4, 0.0f);
 
 	idData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);
 	uvData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 0.0f);

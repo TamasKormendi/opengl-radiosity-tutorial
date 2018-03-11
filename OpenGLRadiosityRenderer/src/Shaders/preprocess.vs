@@ -5,10 +5,10 @@ layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inTextureCoord;
 layout (location = 3) in vec3 inID;
 
-out vec3 fragPos;
-out vec3 normal;
-out vec2 textureCoord;
-out vec3 ID;
+centroid out vec3 fragPos;
+centroid out vec3 normal;
+centroid out vec2 textureCoord;
+centroid out vec3 ID;
 
 uniform mat4 model;
 void main() {

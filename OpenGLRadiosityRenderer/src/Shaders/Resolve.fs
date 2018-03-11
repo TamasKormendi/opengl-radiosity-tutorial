@@ -1,6 +1,6 @@
 #version 450 core
 
-layout (location = 1) out vec4 normalData;
+layout (location = 1) out vec3 normalData;
 
 uniform sampler2DMS multisampledTexture;
 
@@ -27,7 +27,7 @@ void main() {
 
     //finalColour /= 8;
 
-    normalData = vec4(finalColour, 1.0);
+    normalData = finalColour;
 
 
 }

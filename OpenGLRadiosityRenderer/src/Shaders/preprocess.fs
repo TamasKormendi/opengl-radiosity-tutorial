@@ -1,7 +1,7 @@
 #version 450 core
 
 layout (location = 0) out vec3 worldspacePosition;
-layout (location = 1) out vec4 worldspaceNormal;
+layout (location = 1) out vec3 worldspaceNormal;
 layout (location = 2) out vec3 triangleID;
 layout (location = 3) out vec3 interpolatedUV;
 
@@ -15,7 +15,7 @@ void main() {
     worldspacePosition = fragPos;
 
     //If we ever need non-normalised normals, look here
-    worldspaceNormal = vec4(normalize(normal), 1.0);
+    worldspaceNormal = normalize(normal);
 
     triangleID = ID;
 

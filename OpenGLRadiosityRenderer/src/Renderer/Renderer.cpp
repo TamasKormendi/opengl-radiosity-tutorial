@@ -382,7 +382,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -411,7 +411,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -461,7 +461,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 
 	glGenTextures(1, &downsampledNormalData);
 	glBindTexture(GL_TEXTURE_2D, downsampledNormalData);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, downsampledNormalData, 0);
@@ -488,7 +488,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	//Create texture to hold worldspace-position data
 	glGenTextures(1, &worldspacePosData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData, 0);
@@ -496,7 +496,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	//Create texture to hold worldspace-normal data
 	glGenTextures(1, &worldspaceNormalData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData, 0);
@@ -504,7 +504,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	//Create texture to hold triangle IDs in texturespace
 	glGenTextures(1, &idData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D_MULTISAMPLE, idData, 0);
@@ -512,7 +512,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	//Create texture to hold UV-coordinate data in texturespace
 	glGenTextures(1, &uvData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D_MULTISAMPLE, uvData, 0);
@@ -545,7 +545,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		shader.useProgram();
 
 		std::vector<GLfloat> worldspacePositionDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
-		std::vector<GLfloat> normalVectorDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 4);
+		std::vector<GLfloat> normalVectorDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 
 		std::vector<GLfloat> idDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 		std::vector<GLfloat> uvDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
@@ -616,7 +616,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
-		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGBA, GL_FLOAT, &normalVectorDataBuffer[0]);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
 
 
 

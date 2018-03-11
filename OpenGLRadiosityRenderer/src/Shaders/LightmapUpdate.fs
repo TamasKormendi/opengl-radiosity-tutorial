@@ -99,7 +99,7 @@ int isVisible() {
 */
 
 //Parts of this function adapted from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mappings
-int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFragPos) {
+float isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFragPos) {
     float bias = 0.001;
 
     //float bias = max(0.0006 * ( dot(normal, shooterWorldspaceNormal)), 0.0003);  
@@ -110,12 +110,25 @@ int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFra
     float closestDepth = texture(hemicubeFaceVisibilityTexture, projectedCoordinates.xy).r;
     float currentDepth = projectedCoordinates.z;
 
-    int shadow = (currentDepth - bias) > closestDepth ? 0 : 1;
+    float shadow = 0.0;
+
+    vec2 texelSize = 1.0 / textureSize(hemicubeFaceVisibilityTexture, 0);
+    for(int x = -2; x <= 2; ++x)
+    {
+        for(int y = -2; y <= 2; ++y)
+        {
+            float pcfDepth = texture(hemicubeFaceVisibilityTexture, projectedCoordinates.xy + vec2(x, y) * texelSize).r; 
+            shadow += (currentDepth - bias) > pcfDepth ? 0.0 : 1.0;        
+        }    
+    }
+
+    shadow = shadow / 25.0;
+
     float zeroDepth = currentDepth - bias;
 
     if (zeroDepth <= 0) {
         //Zero means it is in shadow
-        shadow = 0;
+        shadow = 0.0;
     }    
 
     return shadow;
@@ -125,20 +138,24 @@ int isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFra
 void main() {
 
 
-    int isFragmentVisible;
+    float isFragmentVisible = 0.0;
 
-    int centreShadow = isVisible(visibilityTexture, fragPosLightSpace);
-    int leftShadow = isVisible(leftVisibilityTexture, fragPosLeftLightSpace);
-    int rightShadow = isVisible(rightVisibilityTexture, fragPosRightLightSpace);
-    int upShadow = isVisible(upVisibilityTexture, fragPosUpLightSpace);
-    int downShadow = isVisible(downVisibilityTexture, fragPosDownLightSpace);
+    float centreShadow = isVisible(visibilityTexture, fragPosLightSpace);
+    float leftShadow = isVisible(leftVisibilityTexture, fragPosLeftLightSpace);
+    float rightShadow = isVisible(rightVisibilityTexture, fragPosRightLightSpace);
+    float upShadow = isVisible(upVisibilityTexture, fragPosUpLightSpace);
+    float downShadow = isVisible(downVisibilityTexture, fragPosDownLightSpace);
 
+    isFragmentVisible = centreShadow + leftShadow + rightShadow + upShadow + downShadow;
+
+    /*
     if (centreShadow == 1 || leftShadow == 1 || rightShadow == 1 || upShadow == 1 || downShadow == 1) {
         isFragmentVisible = 1;
     }
     else {
         isFragmentVisible = 0;
     }
+    */
 
     vec3 r = shooterWorldspacePos - fragPos;
 

@@ -273,7 +273,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				meshSelectionNeeded = false;
 			}
 
-			while (!meshSelectionNeeded) {
+			//while (!meshSelectionNeeded) {
+				
+
 				selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
 
 
@@ -281,11 +283,11 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
 
-				/*
+				
 				std::cout << shooterWorldspaceNormal.x << std::endl;
 				std::cout << shooterWorldspaceNormal.y << std::endl;
 				std::cout << shooterWorldspaceNormal.z << std::endl;
-				*/
+				
 
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
@@ -352,9 +354,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//std::cout << i << std::endl;
 
 			//}
-			}
+			//}
 			//Uncomment this to resume manual iteration
-			doRadiosityIteration = false;
+			//doRadiosityIteration = false;
 		}
 
 		
@@ -382,8 +384,11 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 				glActiveTexture(GL_TEXTURE0);
 				finalRenderShader.setUniformInt("irradianceTexture", 0);
@@ -399,6 +404,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			else {
 				finalRenderShader.useProgram();
 
+				finalRenderShader.setUniformMat4("model", model);
+
 				
 				unsigned int irradianceID;
 				glGenTextures(1, &irradianceID);
@@ -406,8 +413,11 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 				glActiveTexture(GL_TEXTURE0);
 				finalRenderShader.setUniformInt("irradianceTexture", 0);
@@ -1196,6 +1206,8 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 //The shooter information has to be bound to the lightmapUpdateShader before calling this function
 void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures) {
+	//std::cout << " Start: " << glfwGetTime() << std::endl;
+
 	unsigned int lightmapFramebuffer;
 
 	glGenFramebuffers(1, &lightmapFramebuffer);
@@ -1229,6 +1241,8 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 	}
 
 	unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+
+
 	glDrawBuffers(2, attachments);
 
 	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
@@ -1237,6 +1251,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 
 	int lampCounter = 0;
 
+	//std::cout << "Loop start: " << glfwGetTime() << std::endl;
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1331,17 +1346,22 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 			model.meshes[i].draw(lightmapUpdateShader);
 		}
 
+		//std::cout << "Readback Start: " << glfwGetTime() << std::endl;
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newIrradianceDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newRadianceDataBuffer[0]);
+		//std::cout << "Readback end: " << glfwGetTime() << std::endl;
 
+		//std::cout << "Copy Start: " << glfwGetTime() << std::endl;
 		model.meshes[i].irradianceData = newIrradianceDataBuffer;
 		model.meshes[i].radianceData = newRadianceDataBuffer;
+		//std::cout << "Copy end: " << glfwGetTime() << std::endl;
 
 		glDeleteTextures(1, &irradianceID);
 		glDeleteTextures(1, &radianceID);
 	}
+	//std::cout << "Loop end: " << glfwGetTime() << std::endl;
 
 	//We'll need to delete the framebuffer and the newIrradiance and newRadiance textures here
 
@@ -1353,6 +1373,8 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 	//glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//std::cout << "Function end: " << glfwGetTime() << std::endl;
 }
 
 void Renderer::processInput(GLFWwindow* window) {

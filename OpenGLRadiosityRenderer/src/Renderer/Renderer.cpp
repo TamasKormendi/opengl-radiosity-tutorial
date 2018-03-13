@@ -382,7 +382,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -411,7 +411,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -457,7 +457,17 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	glGenFramebuffers(1, &intermediateFramebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 
+	unsigned int downsampledPosData;
 	unsigned int downsampledNormalData;
+	unsigned int downsampledIDData;
+	unsigned int downsampledUVData;
+
+	glGenTextures(1, &downsampledPosData);
+	glBindTexture(GL_TEXTURE_2D, downsampledPosData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, downsampledPosData, 0);
 
 	glGenTextures(1, &downsampledNormalData);
 	glBindTexture(GL_TEXTURE_2D, downsampledNormalData);
@@ -466,7 +476,22 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, downsampledNormalData, 0);
 
-	glDrawBuffer(GL_COLOR_ATTACHMENT1);
+	glGenTextures(1, &downsampledIDData);
+	glBindTexture(GL_TEXTURE_2D, downsampledIDData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, downsampledIDData, 0);
+
+	glGenTextures(1, &downsampledUVData);
+	glBindTexture(GL_TEXTURE_2D, downsampledUVData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, downsampledUVData, 0);
+
+	unsigned int resolveAttachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(4, resolveAttachments);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "Intermediate Framebuffer isn't complete" << std::endl;
@@ -596,7 +621,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
-		glDrawBuffer(GL_COLOR_ATTACHMENT1);
+		//glDrawBuffer(GL_COLOR_ATTACHMENT1);
 
 		//glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
@@ -605,8 +630,20 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		glBindVertexArray(shooterMeshSelectionQuadVAO);
 
 		glActiveTexture(GL_TEXTURE0);
-		resolveShader.setUniformInt("multisampledTexture", 0);
+		resolveShader.setUniformInt("multisampledPosTexture", 0);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
+
+		glActiveTexture(GL_TEXTURE1);
+		resolveShader.setUniformInt("multisampledNormalTexture", 1);
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
+
+		glActiveTexture(GL_TEXTURE2);
+		resolveShader.setUniformInt("multisampledIDTexture", 2);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
+
+		glActiveTexture(GL_TEXTURE3);
+		resolveShader.setUniformInt("multisampledUVTexture", 3);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
 
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -615,14 +652,15 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 
 		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 
+		/*
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
+		*/
 
 
 
 
-
-		/*
+		
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
@@ -631,7 +669,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &idDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT3);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &uvDataBuffer[0]);
-		*/
+		
 
 		model.meshes[i].worldspacePosData = worldspacePositionDataBuffer;
 		model.meshes[i].worldspaceNormalData = normalVectorDataBuffer;

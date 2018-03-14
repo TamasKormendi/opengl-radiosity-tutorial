@@ -96,6 +96,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	//ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	//ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
+	ShaderLoader preprocessShader("../src/Shaders/Preprocess.vs", "../src/Shaders/Preprocess.fs");
+
 	ShaderLoader preprocessShaderMultisample("../src/Shaders/PreprocessMultisample.vs", "../src/Shaders/PreprocessMultisample.fs");
 	ShaderLoader preprocessResolveShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/PreprocessResolve.fs");
 
@@ -234,9 +236,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		if (preprocessDone == 1) {
 
-			//preprocess(mainModel, preprocessShader, model);
+			preprocess(mainModel, preprocessShader, model);
 
-			preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
+			//preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
 
 			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
 			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
@@ -452,52 +454,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 //Current issues:
 //Light placement (have to know the location of the light when doing processing, can be split into 2 parts - preprocess most of the scene and process lights at creation)
 //It is somewhat untested
-void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO) {
-	unsigned int intermediateFramebuffer;
-
-	glGenFramebuffers(1, &intermediateFramebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
-
-	unsigned int downsampledPosData;
-	unsigned int downsampledNormalData;
-	unsigned int downsampledIDData;
-	unsigned int downsampledUVData;
-
-	glGenTextures(1, &downsampledPosData);
-	glBindTexture(GL_TEXTURE_2D, downsampledPosData);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, downsampledPosData, 0);
-
-	glGenTextures(1, &downsampledNormalData);
-	glBindTexture(GL_TEXTURE_2D, downsampledNormalData);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, downsampledNormalData, 0);
-
-	glGenTextures(1, &downsampledIDData);
-	glBindTexture(GL_TEXTURE_2D, downsampledIDData);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, downsampledIDData, 0);
-
-	glGenTextures(1, &downsampledUVData);
-	glBindTexture(GL_TEXTURE_2D, downsampledUVData);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, downsampledUVData, 0);
-
-	unsigned int resolveAttachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-	glDrawBuffers(4, resolveAttachments);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		std::cout << "Intermediate Framebuffer isn't complete" << std::endl;
-	}
-
+void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix) {
 	unsigned int preprocessFramebuffer;
 
 	glGenFramebuffers(1, &preprocessFramebuffer);
@@ -509,62 +466,59 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 	unsigned int idData;
 	unsigned int uvData;
 
-	unsigned int samples = 8;
-
 	//Create texture to hold worldspace-position data
 	glGenTextures(1, &worldspacePosData);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData, 0);
+	glBindTexture(GL_TEXTURE_2D, worldspacePosData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, worldspacePosData, 0);
 
 	//Create texture to hold worldspace-normal data
 	glGenTextures(1, &worldspaceNormalData);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData, 0);
+	glBindTexture(GL_TEXTURE_2D, worldspaceNormalData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, worldspaceNormalData, 0);
 
 	//Create texture to hold triangle IDs in texturespace
 	glGenTextures(1, &idData);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D_MULTISAMPLE, idData, 0);
+	glBindTexture(GL_TEXTURE_2D, idData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, idData, 0);
 
 	//Create texture to hold UV-coordinate data in texturespace
 	glGenTextures(1, &uvData);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
-	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D_MULTISAMPLE, uvData, 0);
+	glBindTexture(GL_TEXTURE_2D, uvData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, uvData, 0);
 
 	//Depth buffer
 	unsigned int depth;
 	glGenRenderbuffers(1, &depth);
 	glBindRenderbuffer(GL_RENDERBUFFER, depth);
-	glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "Framebuffer isn't complete" << std::endl;
 	}
 
-	unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+	unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 	glDrawBuffers(4, attachments);
 
 	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	int lampCounter = 0;
 
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
-		glBindFramebuffer(GL_FRAMEBUFFER, preprocessFramebuffer);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -594,63 +548,6 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 			model.meshes[i].draw(shader);
 		}
 
-
-		float shooterMeshSelectionQuadVertices[] = {
-			// positions   // texCoords
-			-1.0f,  1.0f,  0.0f, 1.0f,
-			-1.0f, -1.0f,  0.0f, 0.0f,
-			1.0f, -1.0f,  1.0f, 0.0f,
-
-			-1.0f,  1.0f,  0.0f, 1.0f,
-			1.0f, -1.0f,  1.0f, 0.0f,
-			1.0f,  1.0f,  1.0f, 1.0f
-		};
-
-
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, preprocessFramebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT1);
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
-		//glDrawBuffer(GL_COLOR_ATTACHMENT1);
-
-		//glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-		
-		resolveShader.useProgram();
-		glBindVertexArray(screenAlignedQuadVAO);
-
-		glActiveTexture(GL_TEXTURE0);
-		resolveShader.setUniformInt("multisampledPosTexture", 0);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
-
-		glActiveTexture(GL_TEXTURE1);
-		resolveShader.setUniformInt("multisampledNormalTexture", 1);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
-
-		glActiveTexture(GL_TEXTURE2);
-		resolveShader.setUniformInt("multisampledIDTexture", 2);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
-
-		glActiveTexture(GL_TEXTURE3);
-		resolveShader.setUniformInt("multisampledUVTexture", 3);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
-
-
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		
-
-
-		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
-
-		/*
-		glReadBuffer(GL_COLOR_ATTACHMENT1);
-		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
-		*/
-
-
-
-
-		
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
@@ -659,7 +556,6 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &idDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT3);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &uvDataBuffer[0]);
-		
 
 		model.meshes[i].worldspacePosData = worldspacePositionDataBuffer;
 		model.meshes[i].worldspaceNormalData = normalVectorDataBuffer;
@@ -684,9 +580,9 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 	std::cout << normalVectorDataBuffer[1534] << std::endl;
 	std::cout << normalVectorDataBuffer[1535] << std::endl;
 	*/
-	
+
 	//TODO: Delete textures here if they are not needed anymore
-	
+
 
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -1484,6 +1380,247 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//std::cout << "Function end: " << glfwGetTime() << std::endl;
+}
+
+void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO) {
+	unsigned int intermediateFramebuffer;
+
+	glGenFramebuffers(1, &intermediateFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
+
+	unsigned int downsampledPosData;
+	unsigned int downsampledNormalData;
+	unsigned int downsampledIDData;
+	unsigned int downsampledUVData;
+
+	glGenTextures(1, &downsampledPosData);
+	glBindTexture(GL_TEXTURE_2D, downsampledPosData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, downsampledPosData, 0);
+
+	glGenTextures(1, &downsampledNormalData);
+	glBindTexture(GL_TEXTURE_2D, downsampledNormalData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, downsampledNormalData, 0);
+
+	glGenTextures(1, &downsampledIDData);
+	glBindTexture(GL_TEXTURE_2D, downsampledIDData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, downsampledIDData, 0);
+
+	glGenTextures(1, &downsampledUVData);
+	glBindTexture(GL_TEXTURE_2D, downsampledUVData);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, downsampledUVData, 0);
+
+	unsigned int resolveAttachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(4, resolveAttachments);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Intermediate Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int preprocessFramebuffer;
+
+	glGenFramebuffers(1, &preprocessFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, preprocessFramebuffer);
+
+	unsigned int worldspacePosData;
+	unsigned int worldspaceNormalData;
+
+	unsigned int idData;
+	unsigned int uvData;
+
+	unsigned int samples = 8;
+
+	//Create texture to hold worldspace-position data
+	glGenTextures(1, &worldspacePosData);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData, 0);
+
+	//Create texture to hold worldspace-normal data
+	glGenTextures(1, &worldspaceNormalData);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData, 0);
+
+	//Create texture to hold triangle IDs in texturespace
+	glGenTextures(1, &idData);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D_MULTISAMPLE, idData, 0);
+
+	//Create texture to hold UV-coordinate data in texturespace
+	glGenTextures(1, &uvData);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D_MULTISAMPLE, uvData, 0);
+
+	//Depth buffer
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(4, attachments);
+
+	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	int lampCounter = 0;
+
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+		glBindFramebuffer(GL_FRAMEBUFFER, preprocessFramebuffer);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		shader.useProgram();
+
+		std::vector<GLfloat> worldspacePositionDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+		std::vector<GLfloat> normalVectorDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+		std::vector<GLfloat> idDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+		std::vector<GLfloat> uvDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			shader.setUniformMat4("model", lampModel);
+
+			model.meshes[i].draw(shader);
+
+			++lampCounter;
+		}
+		else {
+			shader.setUniformMat4("model", mainObjectModelMatrix);
+
+			model.meshes[i].draw(shader);
+		}
+
+
+		float shooterMeshSelectionQuadVertices[] = {
+			// positions   // texCoords
+			-1.0f,  1.0f,  0.0f, 1.0f,
+			-1.0f, -1.0f,  0.0f, 0.0f,
+			1.0f, -1.0f,  1.0f, 0.0f,
+
+			-1.0f,  1.0f,  0.0f, 1.0f,
+			1.0f, -1.0f,  1.0f, 0.0f,
+			1.0f,  1.0f,  1.0f, 1.0f
+		};
+
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, preprocessFramebuffer);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
+		//glDrawBuffer(GL_COLOR_ATTACHMENT1);
+
+		//glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+
+		resolveShader.useProgram();
+		glBindVertexArray(screenAlignedQuadVAO);
+
+		glActiveTexture(GL_TEXTURE0);
+		resolveShader.setUniformInt("multisampledPosTexture", 0);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
+
+		glActiveTexture(GL_TEXTURE1);
+		resolveShader.setUniformInt("multisampledNormalTexture", 1);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
+
+		glActiveTexture(GL_TEXTURE2);
+		resolveShader.setUniformInt("multisampledIDTexture", 2);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
+
+		glActiveTexture(GL_TEXTURE3);
+		resolveShader.setUniformInt("multisampledUVTexture", 3);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
+
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
+
+		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
+
+		/*
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
+		*/
+
+
+
+
+
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT2);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &idDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT3);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &uvDataBuffer[0]);
+
+
+		model.meshes[i].worldspacePosData = worldspacePositionDataBuffer;
+		model.meshes[i].worldspaceNormalData = normalVectorDataBuffer;
+		model.meshes[i].idData = idDataBuffer;
+		model.meshes[i].uvData = uvDataBuffer;
+
+		for (unsigned int j = 0; j < model.meshes[i].idData.size(); j += 3) {
+			float redIDValue = model.meshes[i].idData[j];
+			float greenIDValue = model.meshes[i].idData[j + 1];
+			float blueIDValue = model.meshes[i].idData[j + 2];
+
+			float idSum = redIDValue + greenIDValue + blueIDValue;
+
+			if (idSum > 0) {
+				model.meshes[i].texturespaceShooterIndices.push_back(j);
+			}
+		}
+	}
+
+	/*
+	std::cout << normalVectorDataBuffer[1533] << std::endl;
+	std::cout << normalVectorDataBuffer[1534] << std::endl;
+	std::cout << normalVectorDataBuffer[1535] << std::endl;
+	*/
+
+	//TODO: Delete textures here if they are not needed anymore
+
+
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::processInput(GLFWwindow* window) {

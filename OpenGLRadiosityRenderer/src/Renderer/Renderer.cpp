@@ -104,7 +104,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	ShaderLoader shooterMeshSelectionShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/ShooterMeshSelection.fs");
 
 	//ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
-	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
+	//ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
+	ShaderLoader lightmapUpdateShaderMultisample("../src/Shaders/LightmapUpdateMultisample.vs", "../src/Shaders/LightmapUpdateMultisample.fs");
+	ShaderLoader lightmapResolveShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/LightmapResolve.fs");
+
 	ShaderLoader finalRenderShader("../src/Shaders/FinalRender.vs", "../src/Shaders/FinalRender.fs");
 	ShaderLoader framebufferDebugShader("../src/Shaders/FramebufferDebug.vs", "../src/Shaders/FramebufferDebug.fs");
 
@@ -236,9 +239,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		if (preprocessDone == 1) {
 
-			preprocess(mainModel, preprocessShader, model);
-
-			//preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
+			//preprocess(mainModel, preprocessShader, model);
+			preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
 
 			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
 			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
@@ -335,16 +337,24 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//	1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
 				//	1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
 
-				lightmapUpdateShader.useProgram();
 
+				/*
+				//This is an incredibly important section since this needs to be changed between the MSAA and non-MSAA rendering
+				lightmapUpdateShader.useProgram();
 				lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
 				lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
 				lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
 				lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
-
 				//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
+				//updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
+				*/
 
-				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
+				lightmapUpdateShaderMultisample.useProgram();
+				lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
+				lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+				lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+				lightmapUpdateShaderMultisample.setUniformVec2("shooterUV", shooterUV);
+				updateLightmapsMultisample(mainModel, lightmapUpdateShaderMultisample, model, shooterViews, visibilityTextures, lightmapResolveShader, shooterMeshSelectionQuadVAO);
 
 				//glDeleteTextures(1, &visibilityTexture);
 
@@ -387,7 +397,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -416,10 +426,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -1524,23 +1534,8 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 			model.meshes[i].draw(shader);
 		}
 
-
-		float shooterMeshSelectionQuadVertices[] = {
-			// positions   // texCoords
-			-1.0f,  1.0f,  0.0f, 1.0f,
-			-1.0f, -1.0f,  0.0f, 0.0f,
-			1.0f, -1.0f,  1.0f, 0.0f,
-
-			-1.0f,  1.0f,  0.0f, 1.0f,
-			1.0f, -1.0f,  1.0f, 0.0f,
-			1.0f,  1.0f,  1.0f, 1.0f
-		};
-
-
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, preprocessFramebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT1);
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
+		glClear(GL_COLOR_BUFFER_BIT);
 		//glDrawBuffer(GL_COLOR_ATTACHMENT1);
 
 		//glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -1576,10 +1571,6 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
 		*/
-
-
-
-
 
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
@@ -1621,6 +1612,256 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO) {
+	//std::cout << " Start: " << glfwGetTime() << std::endl;
+
+	
+
+	unsigned int intermediateFramebuffer;
+
+	glGenFramebuffers(1, &intermediateFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
+
+	unsigned int downsampledNewIrradianceTexture;
+	unsigned int downsampledNewRadianceTexture;
+
+	glGenTextures(1, &downsampledNewIrradianceTexture);
+	glBindTexture(GL_TEXTURE_2D, downsampledNewIrradianceTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, downsampledNewIrradianceTexture, 0);
+
+	glGenTextures(1, &downsampledNewRadianceTexture);
+	glBindTexture(GL_TEXTURE_2D, downsampledNewRadianceTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, downsampledNewRadianceTexture, 0);
+
+	unsigned int resolveAttachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(2, resolveAttachments);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Intermediate Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int lightmapFramebuffer;
+
+	glGenFramebuffers(1, &lightmapFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, lightmapFramebuffer);
+
+	unsigned int newIrradianceTexture;
+	unsigned int newRadianceTexture;
+
+	unsigned int samples = 8;
+
+	glGenTextures(1, &newIrradianceTexture);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, newIrradianceTexture);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, newIrradianceTexture, 0);
+
+	glGenTextures(1, &newRadianceTexture);
+	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, newRadianceTexture);
+	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, newRadianceTexture, 0);
+
+	unsigned int depth;
+	glGenRenderbuffers(1, &depth);
+	glBindRenderbuffer(GL_RENDERBUFFER, depth);
+	glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH_COMPONENT, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer isn't complete" << std::endl;
+	}
+
+	unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+
+	glDrawBuffers(2, attachments);
+
+	glViewport(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	int lampCounter = 0;
+
+	//std::cout << "Loop start: " << glfwGetTime() << std::endl;
+	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+		glBindFramebuffer(GL_FRAMEBUFFER, lightmapFramebuffer);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		lightmapUpdateShader.useProgram();
+
+		std::vector<GLfloat> newIrradianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+		std::vector<GLfloat> newRadianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
+
+		glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
+
+		lightmapUpdateShader.useProgram();
+		lightmapUpdateShader.setUniformMat4("projection", shooterProj);
+
+		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
+
+		lightmapUpdateShader.setUniformMat4("leftView", viewMatrices[1]);
+		lightmapUpdateShader.setUniformMat4("rightView", viewMatrices[2]);
+
+		lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
+		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
+
+
+		//Create textures from the old irradiance and radiance data
+		unsigned int irradianceID;
+		glGenTextures(1, &irradianceID);
+
+		glBindTexture(GL_TEXTURE_2D, irradianceID);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].irradianceData[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+
+
+		unsigned int radianceID;
+		glGenTextures(1, &radianceID);
+
+		glBindTexture(GL_TEXTURE_2D, radianceID);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].radianceData[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+
+		//Bind them
+		glActiveTexture(GL_TEXTURE0);
+		lightmapUpdateShader.setUniformInt("irradianceTexture", 0);
+		glBindTexture(GL_TEXTURE_2D, irradianceID);
+
+		glActiveTexture(GL_TEXTURE1);
+		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
+		glBindTexture(GL_TEXTURE_2D, radianceID);
+
+		//Also bind the visibility textures, they're a bit scattered for now
+		glActiveTexture(GL_TEXTURE2);
+		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
+
+		glActiveTexture(GL_TEXTURE10);
+		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 10);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
+
+		glActiveTexture(GL_TEXTURE11);
+		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 11);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
+
+		glActiveTexture(GL_TEXTURE12);
+		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 12);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
+
+		glActiveTexture(GL_TEXTURE13);
+		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 13);
+		glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
+
+		if (model.meshes[i].isLamp) {
+			glm::mat4 lampModel = glm::mat4();
+
+			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+
+			lightmapUpdateShader.setUniformMat4("model", lampModel);
+			lightmapUpdateShader.setUniformBool("isLamp", true);
+
+			model.meshes[i].draw(lightmapUpdateShader);
+
+			++lampCounter;
+		}
+		else {
+			lightmapUpdateShader.setUniformMat4("model", mainObjectModelMatrix);
+
+			lightmapUpdateShader.setUniformBool("isLamp", false);
+
+			model.meshes[i].draw(lightmapUpdateShader);
+		}
+
+		/*
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, lightmapFramebuffer);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+		glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, lightmapFramebuffer);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
+		glDrawBuffer(GL_COLOR_ATTACHMENT1);
+
+		glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		*/
+
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		resolveShader.useProgram();
+		glBindVertexArray(screenAlignedQuadVAO);
+
+		glActiveTexture(GL_TEXTURE0);
+		resolveShader.setUniformInt("multisampledNewIrradianceTexture", 0);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, newIrradianceTexture);
+
+		glActiveTexture(GL_TEXTURE1);
+		resolveShader.setUniformInt("multisampledNewRadianceTexture", 1);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, newRadianceTexture);
+
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
+
+
+		//std::cout << "Readback Start: " << glfwGetTime() << std::endl;
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newIrradianceDataBuffer[0]);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newRadianceDataBuffer[0]);
+		//std::cout << "Readback end: " << glfwGetTime() << std::endl;
+
+		//std::cout << "Copy Start: " << glfwGetTime() << std::endl;
+		model.meshes[i].irradianceData = newIrradianceDataBuffer;
+		model.meshes[i].radianceData = newRadianceDataBuffer;
+		//std::cout << "Copy end: " << glfwGetTime() << std::endl;
+
+		glDeleteTextures(1, &irradianceID);
+		glDeleteTextures(1, &radianceID);
+	}
+	//std::cout << "Loop end: " << glfwGetTime() << std::endl;
+
+	//We'll need to delete the framebuffer and the newIrradiance and newRadiance textures here
+
+	glDeleteTextures(1, &newIrradianceTexture);
+	glDeleteTextures(1, &newRadianceTexture);
+
+	glDeleteTextures(1, &downsampledNewIrradianceTexture);
+	glDeleteTextures(1, &downsampledNewRadianceTexture);
+
+	glDeleteRenderbuffers(1, &depth);
+
+	glDeleteFramebuffers(1, &intermediateFramebuffer);
+	glDeleteFramebuffers(1, &lightmapFramebuffer);
+
+	//glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//std::cout << "Function end: " << glfwGetTime() << std::endl;
 }
 
 void Renderer::processInput(GLFWwindow* window) {

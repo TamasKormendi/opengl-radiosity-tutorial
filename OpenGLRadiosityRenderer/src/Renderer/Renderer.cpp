@@ -96,7 +96,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	//ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
 	//ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
-	ShaderLoader preprocessShader("../src/Shaders/preprocess.vs", "../src/Shaders/preprocess.fs");
+	ShaderLoader preprocessShaderMultisample("../src/Shaders/PreprocessMultisample.vs", "../src/Shaders/PreprocessMultisample.fs");
+	ShaderLoader preprocessResolveShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/PreprocessResolve.fs");
 
 	ShaderLoader shooterMeshSelectionShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/ShooterMeshSelection.fs");
 
@@ -233,7 +234,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		if (preprocessDone == 1) {
 
-			preprocess(mainModel, preprocessShader, model);
+			//preprocess(mainModel, preprocessShader, model);
+
+			preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
 
 			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
 			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
@@ -382,7 +385,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -411,7 +414,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glGenTextures(1, &irradianceID);
 
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].worldspaceNormalData[0]);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -449,9 +452,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 //Current issues:
 //Light placement (have to know the location of the light when doing processing, can be split into 2 parts - preprocess most of the scene and process lights at creation)
 //It is somewhat untested
-void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix) {
-	ShaderLoader resolveShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/Resolve.fs");
-
+void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO) {
 	unsigned int intermediateFramebuffer;
 
 	glGenFramebuffers(1, &intermediateFramebuffer);
@@ -605,17 +606,6 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 			1.0f,  1.0f,  1.0f, 1.0f
 		};
 
-		unsigned int shooterMeshSelectionQuadVAO, shooterMeshSelectionQuadVBO;
-		glGenVertexArrays(1, &shooterMeshSelectionQuadVAO);
-		glGenBuffers(1, &shooterMeshSelectionQuadVBO);
-		glBindVertexArray(shooterMeshSelectionQuadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, shooterMeshSelectionQuadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(shooterMeshSelectionQuadVertices), &shooterMeshSelectionQuadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, preprocessFramebuffer);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
@@ -627,7 +617,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 
 		
 		resolveShader.useProgram();
-		glBindVertexArray(shooterMeshSelectionQuadVAO);
+		glBindVertexArray(screenAlignedQuadVAO);
 
 		glActiveTexture(GL_TEXTURE0);
 		resolveShader.setUniformInt("multisampledPosTexture", 0);

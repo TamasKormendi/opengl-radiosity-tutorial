@@ -104,7 +104,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	ShaderLoader shooterMeshSelectionShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/ShooterMeshSelection.fs");
 
 	//ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
-	//ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
+	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
 	ShaderLoader lightmapUpdateShaderMultisample("../src/Shaders/LightmapUpdateMultisample.vs", "../src/Shaders/LightmapUpdateMultisample.fs");
 	ShaderLoader lightmapResolveShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/LightmapResolve.fs");
 

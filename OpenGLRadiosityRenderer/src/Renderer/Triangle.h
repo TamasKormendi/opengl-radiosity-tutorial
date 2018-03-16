@@ -9,6 +9,8 @@ public:
 	Vertex vertex2;
 	Vertex vertex3;
 
+	float area;
+
 	Triangle(Vertex v1, Vertex v2, Vertex v3);
 
 private:
@@ -16,6 +18,7 @@ private:
 
 	void calculateRGBID();
 
+	float calculateArea();
 };
 
 #endif

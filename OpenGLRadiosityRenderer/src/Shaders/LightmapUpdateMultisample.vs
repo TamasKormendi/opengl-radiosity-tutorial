@@ -1,5 +1,3 @@
-//Note: when modifying the lightmap update shaders make sure to update the corresponding multisampled ones as well
-
 #version 450 core
 
 layout (location = 0) in vec3 vertexPos;
@@ -7,20 +5,20 @@ layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inTextureCoord;
 layout (location = 3) in vec3 inID;
 
-out vec3 fragPos;
-out vec3 normal;
-out vec2 textureCoord;
-out vec3 ID;
+centroid out vec3 fragPos;
+centroid out vec3 normal;
+centroid out vec2 textureCoord;
+centroid out vec3 ID;
 
-out vec4 fragPosLightSpace;
-out vec3 normalLightSpace;
+centroid out vec4 fragPosLightSpace;
+centroid out vec3 normalLightSpace;
 
-out vec4 fragPosLeftLightSpace;
-out vec4 fragPosRightLightSpace;
-out vec4 fragPosUpLightSpace;
-out vec4 fragPosDownLightSpace;
+centroid out vec4 fragPosLeftLightSpace;
+centroid out vec4 fragPosRightLightSpace;
+centroid out vec4 fragPosUpLightSpace;
+centroid out vec4 fragPosDownLightSpace;
 
-out vec3 cameraspace_position;
+centroid out vec3 cameraspace_position;
 
 uniform mat4 model;
 uniform mat4 view;

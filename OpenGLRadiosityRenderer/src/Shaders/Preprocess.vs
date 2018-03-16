@@ -25,4 +25,3 @@ void main() {
 
     gl_Position = vec4(textureSpace.x, textureSpace.y, 0.5, 1.0);
 }
-

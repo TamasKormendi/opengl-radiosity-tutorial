@@ -44,7 +44,11 @@ public:
 
 	bool isLamp;
 
-	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp);
+	float scale;
+	float overallArea;
+	float texelArea;
+
+	ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp, float scale);
 	void draw(ShaderLoader& shaderLoader);
 
 private:

@@ -39,6 +39,8 @@ uniform sampler2D texture_diffuse0;
 
 uniform bool isLamp;
 
+uniform float texelArea;
+
 /*
 int isVisible() {
     vec3 projectedPos = normalize(cameraspace_position);
@@ -201,7 +203,11 @@ void main() {
 
     //This if avoids division by 0
     if (xydist2 > 0) {
-        float G = cthetax * cthetay / xydist2;
+
+
+        //First one is for uniform size
+        //float G = cthetax * cthetay / xydist2;
+        float G = (cthetax * cthetay / (xydist2 * 3.14)) * texelArea;
 
         //Removed pi for now and using only linear attenuation now
         //Fij = max(cosi * cosj, 0) / (distanceSquared);

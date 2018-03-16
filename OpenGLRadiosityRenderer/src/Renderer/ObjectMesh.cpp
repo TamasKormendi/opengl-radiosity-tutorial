@@ -18,12 +18,16 @@
 
 long long int meshAmount = 0;
 
-ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp) {
+ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp, float scale) {
 	this->vertices = vertices;
 	this->indices = indices;
 	this->textures = textures;
 
 	this->isLamp = isLamp;
+
+	this->scale = scale;
+
+	this->overallArea = 0.0;
 
 	if (isLamp) {
 		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
@@ -43,6 +47,13 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 	texturespaceShooterIndices = std::vector<unsigned int>();
 
 	setupMesh();
+
+	overallArea = (scale * scale) * overallArea;
+
+	std::cout << overallArea << std::endl;
+
+	//This is properly initialised in the preprocess step
+	texelArea = 0;
 }
 
 
@@ -89,6 +100,8 @@ void ObjectMesh::setupMesh() {
 	for (unsigned int i = 0; i < indices.size(); i += 3) {
 
 		Triangle triangle(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]);
+
+		overallArea += triangle.area;
 
 		triangles.push_back(triangle);
 	}

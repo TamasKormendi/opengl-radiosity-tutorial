@@ -62,8 +62,10 @@ unsigned int loadTexture(const char* path, const std::string& directory) {
 
 
 
-ObjectModel::ObjectModel(const std::string& path, bool isLamp) {
+ObjectModel::ObjectModel(const std::string& path, bool isLamp, float scale) {
 	this->isLamp = isLamp;
+
+	this->scale = scale;
 
 	loadModel(path);
 }
@@ -183,7 +185,7 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
-	return ObjectMesh(vertices, indices, textures, isLamp);
+	return ObjectMesh(vertices, indices, textures, isLamp, scale);
 }
 
 

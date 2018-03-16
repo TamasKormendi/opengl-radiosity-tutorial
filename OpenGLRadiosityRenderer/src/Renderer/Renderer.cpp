@@ -54,6 +54,9 @@ bool meshSelectionNeeded = true;
 unsigned int shooterIndex = 0;
 unsigned int shooterMesh = 0;
 
+//This is properly initialised in the main rendering function
+float lampScale = 1.0;
+
 Renderer::Renderer() {
 
 }
@@ -113,8 +116,10 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	ShaderLoader hemicubeVisibilityShader("../src/Shaders/HemicubeVisibilityTexture.vs", "../src/Shaders/HemicubeVisibilityTexture.fs");
 
-	ObjectModel mainModel(objectFilepath, false);
-	ObjectModel lampModel("../assets/lamp.obj", true);
+	ObjectModel mainModel(objectFilepath, false, 1.0);
+	ObjectModel lampModel("../assets/lamp.obj", true, 0.05);
+
+	lampScale = lampModel.scale;
 
 	int frameCounter = 0;
 	double fpsTimeCounter = glfwGetTime();
@@ -230,7 +235,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		finalRenderShader.setUniformMat4("view", view);
 
 		glm::mat4 model;
-		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		model = glm::scale(model, glm::vec3(mainModel.scale));
 		finalRenderShader.setUniformMat4("model", model);
 
 		finalRenderShader.setUniformBool("addAmbient", addAmbient);
@@ -390,7 +395,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glm::mat4 lampModel = glm::mat4();
 
 				lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-				lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+				lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 				//The uniform for the lamp's model is just "model"
 				finalRenderShader.setUniformMat4("model", lampModel);
 
@@ -546,7 +551,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			shader.setUniformMat4("model", lampModel);
 
@@ -585,6 +590,11 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 				model.meshes[i].texturespaceShooterIndices.push_back(j);
 			}
 		}
+
+		//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
+		model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
+
+		std::cout << model.meshes[i].texelArea << std::endl;
 	}
 
 	/*
@@ -716,9 +726,16 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, unsigned int& shooterMeshIndex) {
 	unsigned int texelIndex = model.meshes[shooterMeshIndex].texturespaceShooterIndices[shooterIndex];
 
+	/*
+	//This one is for the uniform shooter size one
 	shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
 								model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
 								model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
+	*/
+
+	shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
+								model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
+								model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea);
 
 	shooterWorldspacePos = glm::vec3(model.meshes[shooterMeshIndex].worldspacePosData[texelIndex], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 2]);
 
@@ -850,7 +867,7 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			visibilityShader.setUniformMat4("model", lampModel);
 
@@ -979,7 +996,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			hemicubeShader.setUniformMat4("model", lampModel);
 
@@ -1031,7 +1048,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			hemicubeShader.setUniformMat4("model", lampModel);
 
@@ -1083,7 +1100,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			hemicubeShader.setUniformMat4("model", lampModel);
 
@@ -1135,7 +1152,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			hemicubeShader.setUniformMat4("model", lampModel);
 
@@ -1187,7 +1204,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			hemicubeShader.setUniformMat4("model", lampModel);
 
@@ -1291,6 +1308,8 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
 		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
 
+		lightmapUpdateShader.setUniformFloat("texelArea", model.meshes[i].texelArea);
+
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;
@@ -1346,7 +1365,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			lightmapUpdateShader.setUniformMat4("model", lampModel);
 			lightmapUpdateShader.setUniformBool("isLamp", true);
@@ -1522,7 +1541,7 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			shader.setUniformMat4("model", lampModel);
 
@@ -1600,6 +1619,11 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 				model.meshes[i].texturespaceShooterIndices.push_back(j);
 			}
 		}
+
+		//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
+		model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
+
+		std::cout << model.meshes[i].texelArea << std::endl;
 	}
 
 	/*
@@ -1718,6 +1742,7 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 		lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
 		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
 
+		lightmapUpdateShader.setUniformFloat("texelArea", model.meshes[i].texelArea);
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;
@@ -1773,7 +1798,7 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 			glm::mat4 lampModel = glm::mat4();
 
 			lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
-			lampModel = glm::scale(lampModel, glm::vec3(0.05f));
+			lampModel = glm::scale(lampModel, glm::vec3(lampScale));
 
 			lightmapUpdateShader.setUniformMat4("model", lampModel);
 			lightmapUpdateShader.setUniformBool("isLamp", true);

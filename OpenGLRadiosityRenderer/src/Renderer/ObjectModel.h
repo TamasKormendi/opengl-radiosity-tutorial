@@ -16,12 +16,13 @@ unsigned int loadTexture(const char* path, const std::string& directory);
 class ObjectModel {
 public:
 	bool isLamp;
+	float scale;
 
 	//It might make more sense to draw everything in the main loop, as I can set specific matrices for
 	//lights and non-lights that way
 	std::vector<ObjectMesh> meshes;
 
-	ObjectModel(const std::string& path, bool isLamp);
+	ObjectModel(const std::string& path, bool isLamp, float scale);
 
 	void draw(ShaderLoader& shaderLoader);
 

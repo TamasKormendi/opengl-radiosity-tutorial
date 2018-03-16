@@ -346,15 +346,17 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
 				lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
 				//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
-				//updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
+				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
 				*/
 
+				
 				lightmapUpdateShaderMultisample.useProgram();
 				lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
 				lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
 				lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
 				lightmapUpdateShaderMultisample.setUniformVec2("shooterUV", shooterUV);
 				updateLightmapsMultisample(mainModel, lightmapUpdateShaderMultisample, model, shooterViews, visibilityTextures, lightmapResolveShader, shooterMeshSelectionQuadVAO);
+				
 
 				//glDeleteTextures(1, &visibilityTexture);
 

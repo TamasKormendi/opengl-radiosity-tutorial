@@ -10,9 +10,11 @@
 enum {
 	ID_RENDERER_RESOLUTION = 1,
 	ID_LIGHTMAP_RESOLUTION = 2,
-	ID_ATTENUATION_TYPE = 3
+	ID_ATTENUATION_TYPE = 3,
 	
-
+	ID_UPDATE_BOX = 4,
+	ID_FILTERING_BOX = 5,
+	ID_MULTISAMPLING_BOX = 6
 
 };
 
@@ -20,6 +22,10 @@ wxBEGIN_EVENT_TABLE(SettingsFrame, wxFrame)
 	EVT_CHOICE(ID_RENDERER_RESOLUTION, SettingsFrame::OnRendererResolutionSelected)
 	EVT_CHOICE(ID_LIGHTMAP_RESOLUTION, SettingsFrame::OnLightmapResolutionSelected)
 	EVT_CHOICE(ID_RENDERER_RESOLUTION, SettingsFrame::OnAttenuationSelected)
+
+	EVT_CHECKBOX(ID_UPDATE_BOX, SettingsFrame::OnUpdateChecked)
+	EVT_CHECKBOX(ID_FILTERING_BOX, SettingsFrame::OnFilteringChecked)
+	EVT_CHECKBOX(ID_MULTISAMPLING_BOX, SettingsFrame::OnMultisamplingChecked)
 
 	EVT_CLOSE(SettingsFrame::OnClose)
 wxEND_EVENT_TABLE()
@@ -76,6 +82,14 @@ SettingsFrame::SettingsFrame(wxWindow* parent, const wxString& title, const wxPo
 	attenuationChoice = new wxChoice(this, 3, wxDefaultPosition, wxDefaultSize, attenuationOptions, wxTE_RICH | wxTE_CENTRE);
 	attenuationChoice->SetSelection(attenuationType);
 
+	updateBox = new wxCheckBox(this, 4, "Continuously update lightmaps");
+	updateBox->SetValue(continuousUpdate);
+
+	filteringBox = new wxCheckBox(this, 5, "Texture filter lightmaps");
+	filteringBox->SetValue(textureFiltering);
+
+	multisamplingBox = new wxCheckBox(this, 6, "Use multisampling");
+	multisamplingBox->SetValue(multisampling);
 
 	//Add to sizer
 	sizer->Add(rendererResolutionLabel, 0, wxALIGN_CENTER | wxALL);
@@ -86,6 +100,10 @@ SettingsFrame::SettingsFrame(wxWindow* parent, const wxString& title, const wxPo
 
 	sizer->Add(attenuationLabel, 0, wxALIGN_CENTER | wxALL);
 	sizer->Add(attenuationChoice, 0, wxALIGN_CENTER | wxALL, 10);
+
+	sizer->Add(updateBox, 0, wxALIGN_CENTER | wxALL, 10);
+	sizer->Add(filteringBox, 0, wxALIGN_CENTER | wxALL, 10);
+	sizer->Add(multisamplingBox, 0, wxALIGN_CENTER | wxALL, 10);
 
 	SetSizer(sizer);
 
@@ -101,6 +119,18 @@ void SettingsFrame::OnLightmapResolutionSelected(wxCommandEvent& event) {
 
 void SettingsFrame::OnAttenuationSelected(wxCommandEvent& event) {
 	attenuationType = attenuationChoice->GetSelection();
+}
+
+void SettingsFrame::OnUpdateChecked(wxCommandEvent& event) {
+	continuousUpdate = updateBox->GetValue();
+}
+
+void SettingsFrame::OnFilteringChecked(wxCommandEvent& event) {
+	textureFiltering = filteringBox->GetValue();
+}
+
+void SettingsFrame::OnMultisamplingChecked(wxCommandEvent& event) {
+	multisampling = multisamplingBox->GetValue();
 }
 
 void SettingsFrame::OnClose(wxCloseEvent& closeEvent) {

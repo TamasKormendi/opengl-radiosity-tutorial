@@ -24,8 +24,8 @@
 #include <Renderer\RadiosityConfig.h>
 
 
-const unsigned int SCREEN_WIDTH = 1280;
-const unsigned int SCREEN_HEIGHT = 720;
+unsigned int SCREEN_WIDTH = 1280;
+unsigned int SCREEN_HEIGHT = 720;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 

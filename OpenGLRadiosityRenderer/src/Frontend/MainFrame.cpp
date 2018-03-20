@@ -8,6 +8,7 @@
 #include <Renderer\Renderer.h>
 
 #include <Frontend\MainFrame.h>
+#include <Frontend\SettingsFrame.h>
 
 
 #include <iostream>
@@ -18,7 +19,8 @@ enum {
 	ID_LAUNCH_RENDERER_BUTTON = 1,
 	ID_QUIT_BUTTON = 2,
 
-	ID_FILESELECTOR_BUTTON = 3
+	ID_FILESELECTOR_BUTTON = 3,
+	ID_SETTINGS_BUTTON = 4
 };
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
@@ -26,6 +28,8 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_BUTTON(ID_LAUNCH_RENDERER_BUTTON, MainFrame::OnLaunchRenderer)
 	EVT_BUTTON(ID_QUIT_BUTTON, MainFrame::OnExit)
 	EVT_BUTTON(ID_FILESELECTOR_BUTTON, MainFrame::OpenFileSelector)
+
+	EVT_BUTTON(ID_SETTINGS_BUTTON, MainFrame::OpenSettings)
 
 	EVT_MENU(wxID_EXIT, MainFrame::OnExit)
 	EVT_MENU(wxID_ABOUT, MainFrame::OnAbout)
@@ -51,8 +55,9 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 
 	SetMenuBar(menuBar); */
 
+	settings = new SettingsFrame(this, "Settings", wxPoint(50, 50), wxSize(450, 340));
 
-	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
 	//wxButton* startButton = new wxButton(this, ID_LAUNCH_RENDERER_BUTTON, _T("Launch Renderer"), 0, 0, 0);
 	//wxButton* quitButton = new wxButton(this, ID_QUIT_BUTTON, _T("Quit"), 0, 0, 0);
@@ -64,6 +69,8 @@ MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& si
 	sizer->Add(filepathBox, 0, wxALIGN_CENTER | wxALL, 10);
 
 	sizer->Add(new wxButton(this, ID_FILESELECTOR_BUTTON, "Select object file"), 0, wxALIGN_CENTER | wxALL, 10);
+
+	sizer->Add(new wxButton(this, ID_SETTINGS_BUTTON, "Settings"), 0, wxALIGN_CENTER | wxALL, 10);
 
 	sizer->Add(new wxButton(this, ID_QUIT_BUTTON, "Quit"), 0, wxALIGN_CENTER | wxALL, 10);
 
@@ -96,7 +103,7 @@ void MainFrame::OpenFileSelector(wxCommandEvent& WXUNUSED(event)) {
 		_("Wavefront object files (*.obj)|*.obj"),
 			wxFD_OPEN, wxDefaultPosition);
 
-	if (OpenDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "Cancel"
+	if (OpenDialog->ShowModal() == wxID_OK) // if the user clicks "Open" instead of "Cancel"
 	{
 		wxString wxFilepath = OpenDialog->GetPath();
 
@@ -110,4 +117,8 @@ void MainFrame::OpenFileSelector(wxCommandEvent& WXUNUSED(event)) {
 	}
 
 	OpenDialog->Destroy();
+}
+
+void MainFrame::OpenSettings(wxCommandEvent& event) {
+	settings->Show(true);
 }

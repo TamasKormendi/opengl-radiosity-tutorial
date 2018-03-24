@@ -29,6 +29,20 @@ enum class RENDERER_RESOLUTION : int {
 	RES_1080P = 2
 };
 
+enum class LIGHTMAP_RESOLUTION : int {
+	RES_32 = 0,
+	RES_64 = 1,
+	RES_128 = 2,
+	RES_256 = 3,
+	RES_512 = 4
+};
+
+enum class ATTENUATION : int {
+	ATT_LINEAR = 0,
+	ATT_QUAD = 1,
+	ATT_QUAD_AREA = 2
+};
+
 //This is the default value, properly set later
 int ::RADIOSITY_TEXTURE_SIZE = 32;
 
@@ -99,6 +113,22 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	else if (rendererResolution == static_cast<int>(RENDERER_RESOLUTION::RES_1080P)) {
 		SCREEN_WIDTH = 1920;
 		SCREEN_HEIGHT = 1080;
+	}
+
+	if (lightmapResolution == static_cast<int>(LIGHTMAP_RESOLUTION::RES_32)) {
+		::RADIOSITY_TEXTURE_SIZE = 32;
+	}
+	else if (lightmapResolution == static_cast<int>(LIGHTMAP_RESOLUTION::RES_64)) {
+		::RADIOSITY_TEXTURE_SIZE = 64;
+	}
+	else if (lightmapResolution == static_cast<int>(LIGHTMAP_RESOLUTION::RES_128)) {
+		::RADIOSITY_TEXTURE_SIZE = 128;
+	}
+	else if (lightmapResolution == static_cast<int>(LIGHTMAP_RESOLUTION::RES_256)) {
+		::RADIOSITY_TEXTURE_SIZE = 256;
+	}
+	else if (lightmapResolution == static_cast<int>(LIGHTMAP_RESOLUTION::RES_512)) {
+		::RADIOSITY_TEXTURE_SIZE = 512;
 	}
 
 
@@ -279,8 +309,15 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		if (preprocessDone == 1) {
 
-			//preprocess(mainModel, preprocessShader, model);
-			preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
+				//preprocess(mainModel, preprocessShader, model);
+
+			if (multisampling) {
+				preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
+			}
+			else {
+				preprocess(mainModel, preprocessShader, model);
+			}
+
 
 			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
 			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
@@ -320,8 +357,9 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				meshSelectionNeeded = false;
 			}
 
-			//while (!meshSelectionNeeded) {
-				
+			if (continuousUpdate) {
+				//while (!meshSelectionNeeded) {
+
 
 				selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
 
@@ -330,11 +368,11 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
 
 
-				
+
 				std::cout << shooterWorldspaceNormal.x << std::endl;
 				std::cout << shooterWorldspaceNormal.y << std::endl;
 				std::cout << shooterWorldspaceNormal.z << std::endl;
-				
+
 
 
 				//TODO: The upVector most likely fails if we have a normal along +y or -y
@@ -342,7 +380,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
 
 				if (upVec.y == 0.0f && upVec.z == 0.0f) {
-					upVec.y = 1.0f;
+				upVec.y = 1.0f;
 				}
 
 				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
@@ -389,14 +427,22 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
 				*/
 
-				
-				lightmapUpdateShaderMultisample.useProgram();
-				lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
-				lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
-				lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
-				lightmapUpdateShaderMultisample.setUniformVec2("shooterUV", shooterUV);
-				updateLightmapsMultisample(mainModel, lightmapUpdateShaderMultisample, model, shooterViews, visibilityTextures, lightmapResolveShader, shooterMeshSelectionQuadVAO);
-				
+				if (multisampling) {
+					lightmapUpdateShaderMultisample.useProgram();
+					lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
+					lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+					lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+					lightmapUpdateShaderMultisample.setUniformVec2("shooterUV", shooterUV);
+					updateLightmapsMultisample(mainModel, lightmapUpdateShaderMultisample, model, shooterViews, visibilityTextures, lightmapResolveShader, shooterMeshSelectionQuadVAO);
+				}
+				else {
+					lightmapUpdateShader.useProgram();
+					lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
+					lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+					lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+					lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
+					updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
+				}
 
 				//glDeleteTextures(1, &visibilityTexture);
 
@@ -410,10 +456,114 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				//std::cout << i << std::endl;
 
-			//}
-			//}
-			//Uncomment this to resume manual iteration
-			//doRadiosityIteration = false;
+				//}
+				//}
+				//Uncomment this to resume manual iteration
+				//doRadiosityIteration = false;
+			}
+			else {
+				while (!meshSelectionNeeded) {
+
+
+					selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
+
+
+
+					//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
+
+
+
+					std::cout << shooterWorldspaceNormal.x << std::endl;
+					std::cout << shooterWorldspaceNormal.y << std::endl;
+					std::cout << shooterWorldspaceNormal.z << std::endl;
+
+
+
+					//TODO: The upVector most likely fails if we have a normal along +y or -y
+					/*
+					glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
+
+					if (upVec.y == 0.0f && upVec.z == 0.0f) {
+					upVec.y = 1.0f;
+					}
+
+					glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
+					*/
+
+					std::vector<glm::mat4> shooterViews;
+
+					unsigned int visibilityTextureSize = 1024;
+
+					glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
+
+					hemicubeVisibilityShader.useProgram();
+					hemicubeVisibilityShader.setUniformMat4("projection", shooterProj);
+
+					//unsigned int visibilityTexture = createVisibilityTexture(mainModel, hemicubeVisibilityShader, model, shooterView, visibilityTextureSize);
+
+					std::vector<unsigned int> visibilityTextures = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterViews, visibilityTextureSize, shooterWorldspacePos, shooterWorldspaceNormal);
+
+					debugTextures = visibilityTextures;
+
+					debugTexture = visibilityTextures[1];
+					debugInitialised = true;
+
+					/*
+					std::cout << "Shooter red " << shooterRadiance.x << std::endl;
+					std::cout << "Shooter green " << shooterRadiance.y << std::endl;
+					std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
+					*/
+
+					//Scale down the shooter's strength - COMMENTED OUT FOR NOW
+					//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+					//	1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
+					//	1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
+
+
+					/*
+					//This is an incredibly important section since this needs to be changed between the MSAA and non-MSAA rendering
+					lightmapUpdateShader.useProgram();
+					lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
+					lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+					lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+					lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
+					//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
+					updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
+					*/
+
+					if (multisampling) {
+						lightmapUpdateShaderMultisample.useProgram();
+						lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
+						lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+						lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+						lightmapUpdateShaderMultisample.setUniformVec2("shooterUV", shooterUV);
+						updateLightmapsMultisample(mainModel, lightmapUpdateShaderMultisample, model, shooterViews, visibilityTextures, lightmapResolveShader, shooterMeshSelectionQuadVAO);
+					}
+					else {
+						lightmapUpdateShader.useProgram();
+						lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
+						lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
+						lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
+						lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
+						updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
+					}
+
+					//glDeleteTextures(1, &visibilityTexture);
+
+					for (unsigned int debugTexture : debugTextures) {
+						glDeleteTextures(1, &debugTexture);
+					}
+
+					std::cout << iterationNumber << std::endl;
+
+					++iterationNumber;
+
+					//std::cout << i << std::endl;
+
+					}
+					//Uncomment this to resume manual iteration
+					doRadiosityIteration = false;
+			}
 		}
 
 		
@@ -441,6 +591,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
+				//There is no point trying to filter a lamp since it is equally bright everywhere
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -470,8 +621,14 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				if (textureFiltering) {
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				}
+				else {
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				}
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -627,7 +784,13 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		}
 
 		//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
-		model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
+		if (attenuationType == static_cast<int>(ATTENUATION::ATT_LINEAR) || attenuationType == static_cast<int>(ATTENUATION::ATT_QUAD)) {
+			model.meshes[i].texelArea = 1.0;
+		}
+		else {
+			//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
+			model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
+		}
 
 		std::cout << model.meshes[i].texelArea << std::endl;
 	}
@@ -761,16 +924,22 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, unsigned int& shooterMeshIndex) {
 	unsigned int texelIndex = model.meshes[shooterMeshIndex].texturespaceShooterIndices[shooterIndex];
 
-	/*
-	//This one is for the uniform shooter size one
-	shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
-								model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
-								model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
-	*/
-
-	shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
-								model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
-								model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea);
+	if (attenuationType == static_cast<int>(ATTENUATION::ATT_LINEAR) || attenuationType == static_cast<int>(ATTENUATION::ATT_QUAD)) {
+		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
+	}
+	else {
+		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
+									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
+									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea);
+	}
+		/*
+		//This one is for the uniform shooter size one
+		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
+		*/
 
 	shooterWorldspacePos = glm::vec3(model.meshes[shooterMeshIndex].worldspacePosData[texelIndex], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 2]);
 
@@ -778,7 +947,7 @@ void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadi
 
 	shooterUV = glm::vec3(model.meshes[shooterMeshIndex].uvData[texelIndex], model.meshes[shooterMeshIndex].uvData[texelIndex + 1], model.meshes[shooterMeshIndex].uvData[texelIndex + 2]);
 
-
+	//Set the shooter's RGB radiance to 0
 	model.meshes[shooterMeshIndex].radianceData[texelIndex] = 0.0f;
 	model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] = 0.0f;
 	model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] = 0.0f;
@@ -1344,6 +1513,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
 
 		lightmapUpdateShader.setUniformFloat("texelArea", model.meshes[i].texelArea);
+		lightmapUpdateShader.setUniformInt("attenuationType", attenuationType);
 
 
 		//Create textures from the old irradiance and radiance data
@@ -1655,8 +1825,14 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 			}
 		}
 
-		//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
-		model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
+
+		if (attenuationType == static_cast<int>(ATTENUATION::ATT_LINEAR) || attenuationType == static_cast<int>(ATTENUATION::ATT_QUAD)) {
+			model.meshes[i].texelArea = 1.0;
+		}
+		else {
+			//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
+			model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
+		}
 
 		//std::cout << model.meshes[i].texelArea << std::endl;
 	}
@@ -1778,6 +1954,7 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
 
 		lightmapUpdateShader.setUniformFloat("texelArea", model.meshes[i].texelArea);
+		lightmapUpdateShader.setUniformInt("attenuationType", attenuationType);
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;

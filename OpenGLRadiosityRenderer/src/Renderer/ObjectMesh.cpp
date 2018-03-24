@@ -29,6 +29,8 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 
 	this->overallArea = 0.0;
 
+	std::cout << ::RADIOSITY_TEXTURE_SIZE << std::endl;
+
 	if (isLamp) {
 		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
 		radianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 6.0f);
@@ -50,7 +52,7 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 
 	overallArea = (scale * scale) * overallArea;
 
-	std::cout << overallArea << std::endl;
+	//std::cout << overallArea << std::endl;
 
 	//This is properly initialised in the preprocess step
 	texelArea = 0;

@@ -23,6 +23,14 @@
 
 #include <Renderer\RadiosityConfig.h>
 
+enum class RENDERER_RESOLUTION : int {
+	RES_800x800 = 0,
+	RES_720P = 1,
+	RES_1080P = 2
+};
+
+//This is the default value, properly set later
+int ::RADIOSITY_TEXTURE_SIZE = 32;
 
 unsigned int SCREEN_WIDTH = 1280;
 unsigned int SCREEN_HEIGHT = 720;
@@ -58,7 +66,13 @@ unsigned int shooterMesh = 0;
 float lampScale = 1.0;
 
 Renderer::Renderer() {
+	rendererResolution = 0;
+	lightmapResolution = 0;
+	attenuationType = 0;
 
+	continuousUpdate = false;
+	textureFiltering = false;
+	multisampling = 0;
 }
 
 void Renderer::startRenderer(std::string objectFilepath) {
@@ -66,6 +80,27 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		std::cout << "Failed to initialise GLFW" << std::endl;
 		return;
 	}
+
+	std::cout << rendererResolution << std::endl;
+	std::cout << lightmapResolution << std::endl;
+	std::cout << attenuationType << std::endl;
+	std::cout << continuousUpdate << std::endl;
+	std::cout << textureFiltering << std::endl;
+	std::cout << multisampling << std::endl;
+
+	if (rendererResolution == static_cast<int>(RENDERER_RESOLUTION::RES_800x800)) {
+		SCREEN_WIDTH = 800;
+		SCREEN_HEIGHT = 800;
+	}
+	else if (rendererResolution == static_cast<int>(RENDERER_RESOLUTION::RES_720P)) {
+		SCREEN_WIDTH = 1280;
+		SCREEN_HEIGHT = 720;
+	}
+	else if (rendererResolution == static_cast<int>(RENDERER_RESOLUTION::RES_1080P)) {
+		SCREEN_WIDTH = 1920;
+		SCREEN_HEIGHT = 1080;
+	}
+
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
@@ -1623,7 +1658,7 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 		//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
 		model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
 
-		std::cout << model.meshes[i].texelArea << std::endl;
+		//std::cout << model.meshes[i].texelArea << std::endl;
 	}
 
 	/*
@@ -1942,6 +1977,16 @@ void Renderer::displayFramebufferTexture(ShaderLoader& debugShader, unsigned int
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 	glUseProgram(0);
+}
+
+void Renderer::setParameters(int& rendererResolution, int& lightmapResolution, int& attenuationType, bool& continuousUpdate, bool& textureFiltering, bool& multisampling) {
+	this->rendererResolution = rendererResolution;
+	this->lightmapResolution = lightmapResolution;
+	this->attenuationType = attenuationType;
+
+	this->continuousUpdate = continuousUpdate;
+	this->textureFiltering = textureFiltering;
+	this->multisampling = multisampling;
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {

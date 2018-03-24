@@ -21,7 +21,7 @@ enum {
 wxBEGIN_EVENT_TABLE(SettingsFrame, wxFrame)
 	EVT_CHOICE(ID_RENDERER_RESOLUTION, SettingsFrame::OnRendererResolutionSelected)
 	EVT_CHOICE(ID_LIGHTMAP_RESOLUTION, SettingsFrame::OnLightmapResolutionSelected)
-	EVT_CHOICE(ID_RENDERER_RESOLUTION, SettingsFrame::OnAttenuationSelected)
+	EVT_CHOICE(ID_ATTENUATION_TYPE, SettingsFrame::OnAttenuationSelected)
 
 	EVT_CHECKBOX(ID_UPDATE_BOX, SettingsFrame::OnUpdateChecked)
 	EVT_CHECKBOX(ID_FILTERING_BOX, SettingsFrame::OnFilteringChecked)

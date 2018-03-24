@@ -90,6 +90,10 @@ void MainFrame::OnAbout(wxCommandEvent& event) {
 void MainFrame::OnLaunchRenderer(wxCommandEvent& event) {
 	Show(false);
 
+	std::cout << "Attenuation in frame: " << settings->attenuationType << std::endl;
+
+	renderer->setParameters(settings->rendererResolution, settings->lightmapResolution, settings->attenuationType, settings->continuousUpdate, settings->textureFiltering, settings->multisampling);
+
 	renderer->startRenderer(filepath);
 
 	std::cout << "Renderer Launched";

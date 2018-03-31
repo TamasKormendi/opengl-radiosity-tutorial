@@ -10,7 +10,9 @@ void main() {
     vec3 finalIrradiance = vec3(0.0, 0.0, 0.0);
     vec3 finalRadiance = vec3(0.0, 0.0, 0.0);
 
+    //Use 8 samples
     for (int i = 0; i <8; ++i) {
+        //Need to use texelFetch for multisampled textures
         vec3 fetchedIrradiance = texelFetch(multisampledNewIrradianceTexture, ivec2(gl_FragCoord.xy), i).rgb;
         vec3 fetchedRadiance = texelFetch(multisampledNewRadianceTexture, ivec2(gl_FragCoord.xy), i).rgb;
 
@@ -24,9 +26,6 @@ void main() {
         finalRadiance = max(finalRadiance, fetchedRadiance);
     }
 
-    //finalColour /= 8;
-
     irradianceData = finalIrradiance;
     radianceData = finalRadiance;
-
 }

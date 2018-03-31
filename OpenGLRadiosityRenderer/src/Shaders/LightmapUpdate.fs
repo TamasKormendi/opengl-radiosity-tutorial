@@ -42,73 +42,12 @@ uniform bool isLamp;
 uniform float texelArea;
 uniform int attenuationType;
 
-/*
-int isVisible() {
-    vec3 projectedPos = normalize(cameraspace_position);
-
-    projectedPos.xy = projectedPos.xy * 0.5 + 0.5;
-
-    vec3 projectedID = texture(visibilityTexture, projectedPos.xy).rgb;
-
-    float visibilityR = abs(projectedID.r - ID.r);
-    float visibilityG = abs (projectedID.g - ID.g);
-    float visibilityB = abs (projectedID.b - ID.b);
-
-    //We might need to give this a bound (eg +- 0.001) if we don't get correct values
-    if (visibilityR <= 0.01 && visibilityG <= 0.01 && visibilityB <= 0.01 ) {
-        return int(1);
-    }
-    else {
-        return int(0);
-    }
-}
-*/
-
-
-/*
-int isVisible() {
-    //The bias introduces some peter panning but eliminates the "barcode" artifacts
-    float bias = 0.001;
-
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    float closestDepth = texture(visibilityTexture, projCoords.xy).r; 
-    float currentDepth = projCoords.z;
-
-
-    int shadow = (currentDepth - bias) > closestDepth  ? 0 : 1;
-    float zeroDepth = currentDepth - bias;
-    if (zeroDepth <= 0) {
-        shadow = 0;
-    } 
-
-    vec3 leftProjCoords = fragPosLeftLightSpace.xyz / fragPosLeftLightSpace.w;
-    leftProjCoords = leftProjCoords * 0.5 + 0.5;
-    float leftClosestDepth = texture(leftVisibilityTexture, leftProjCoords.xy).r;
-    float leftCurrentDepth = leftProjCoords.z;
-
-    int leftShadow = (leftCurrentDepth - bias) > leftClosestDepth ? 0 : 1;
-    float leftZeroDepth = leftCurrentDepth - bias;
-
-    if (leftZeroDepth <= 0) {
-        leftShadow = 0;
-    } 
-
-    if (leftShadow == 1 || shadow == 1) {
-        return 1;
-    }
-    else {
-        return 0;
-    }
-}
-*/
-
 //Parts of this function adapted from https://learnopengl.com/Advanced-Lighting/Shadows/Shadow-Mappings
 float isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceFragPos) {
+    //Add a bit of bias to eliminate shadow acne
     float bias = 0.001;
 
-    //float bias = max(0.0006 * ( dot(normal, shooterWorldspaceNormal)), 0.0003);  
-
+    //Perform the perspective divide and scale to texture coordinate range
     vec3 projectedCoordinates = hemicubeFaceSpaceFragPos.xyz / hemicubeFaceSpaceFragPos.w;
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
 
@@ -117,6 +56,7 @@ float isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceF
 
     float shadow = 0.0;
 
+    //Use percentage-closer filtering (PCF), 25 samples
     vec2 texelSize = 1.0 / textureSize(hemicubeFaceVisibilityTexture, 0);
     for(int x = -2; x <= 2; ++x)
     {
@@ -131,6 +71,7 @@ float isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceF
 
     float zeroDepth = currentDepth - bias;
 
+    //If the current fragment is in one plane or behind the shooter, it is in shadow
     if (zeroDepth <= 0) {
         //Zero means it is in shadow
         shadow = 0.0;
@@ -141,10 +82,9 @@ float isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceF
 
 
 void main() {
-
-
     float isFragmentVisible = 0.0;
 
+    //Check how visible the fragment is from each hemicube face
     float centreShadow = isVisible(visibilityTexture, fragPosLightSpace);
     float leftShadow = isVisible(leftVisibilityTexture, fragPosLeftLightSpace);
     float rightShadow = isVisible(rightVisibilityTexture, fragPosRightLightSpace);
@@ -153,87 +93,58 @@ void main() {
 
     isFragmentVisible = centreShadow + leftShadow + rightShadow + upShadow + downShadow;
 
-    /*
-    if (centreShadow == 1 || leftShadow == 1 || rightShadow == 1 || upShadow == 1 || downShadow == 1) {
-        isFragmentVisible = 1;
-    }
-    else {
-        isFragmentVisible = 0;
-    }
-    */
-
-    vec3 r = shooterWorldspacePos - fragPos;
-
-    //Distance is halved for now
-    //r = r / 2;
-
-    float distanceSquared = dot(r, r);
-
-    float distanceLinear = sqrt(distanceSquared);
-
-    r = normalize(r);
-
-    float cosi = dot(normal, r);
-    float cosj = -dot(shooterWorldspaceNormal, r);
 
     const float pi = 3.1415926535;
 
+    //Form factor between shooter and receiver
     float Fij = 0.0;
 
-    ///
     //Fixed and adapted from http://sirkan.iit.bme.hu/~szirmay/gpugi1.pdf
-    //TODO: Rename variables to ones fitting the rest of the project
+    //(Previous versions of this part also used https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter39.html
+    //but by now only a few variable names might remain)
 
-    vec3 ytox = normalize(-cameraspace_position);
+    //Calculations are done in camera-space position, if the hemicube front is considered the camera
 
-    float xydist2 = dot(cameraspace_position, cameraspace_position);
-    float xydist = sqrt(xydist2);
+    //A vector from the shooter to the receiver
+    vec3 shooterReceiverVector = normalize(-cameraspace_position);
 
-    float cthetax = dot(normalLightSpace, ytox);
+    float distanceSquared = dot(cameraspace_position, cameraspace_position);
+    float distanceLinear = sqrt(distanceSquared);
 
-    if (cthetax < 0) {
-        cthetax = 0;
+    float cosThetaX = dot(normalLightSpace, shooterReceiverVector);
+    if (cosThetaX < 0) {
+        cosThetaX = 0;
     }
 
-    vec3 ynorm = vec3(0, 0, 1);
-    float cthetay = ytox.z;
+    //In camera-space the shooter looks along positive Z
+    vec3 shooterDirectionVector = vec3(0, 0, 1);
 
-    if (cthetay < 0) {
-        cthetay = 0;
+    float cosThetaY = shooterReceiverVector.z;
+    if (cosThetaY < 0) {
+        cosThetaY = 0;
     } 
 
-
-    ///
-
-    //This if avoids division by 0
-    if (xydist2 > 0) {
-
-        float G = 0.0;
+    //This conditional avoids division by 0
+    if (distanceSquared > 0) {
+        float geometricTerm = 0.0;
 
         if (attenuationType == 0) {
-            G = cthetax * cthetay / xydist;
+            geometricTerm = cosThetaX * cosThetaY / distanceLinear;
         }
         else if (attenuationType == 1) {
-            G = cthetax * cthetay / xydist2;
+            geometricTerm = cosThetaX * cosThetaY / distanceSquared;
         }
         else if (attenuationType == 2) {
-            G = (cthetax * cthetay / (xydist2 * pi)) * texelArea;
+            geometricTerm = (cosThetaX * cosThetaY / (distanceSquared * pi)) * texelArea;
         }
 
-
-        //First one is for uniform size
-        //float G = cthetax * cthetay / xydist2;
-       // float G = (cthetax * cthetay / (xydist2 * 3.14)) * texelArea;
-
-        //Removed pi for now and using only linear attenuation now
-        //Fij = max(cosi * cosj, 0) / (distanceSquared);
-
-        Fij = G;
+        Fij = geometricTerm;
     }
     else {
         Fij = 0;
     }
 
+    //So far Fij only holds the geometric term, need to multiply by the visibility term
     Fij = Fij * isFragmentVisible;
 
     vec3 oldIrradianceValue = texture(irradianceTexture, textureCoord).rgb;
@@ -244,25 +155,13 @@ void main() {
     vec3 deltaIrradiance = Fij * shooterRadiance;
     vec3 deltaRadiance = deltaIrradiance * diffuseValue;
 
-    //Clamping the values and zeroing out the shooter is missing for now
-    //Update: this is how values are clamped for now, shooter zeroing is done in the shooter selection function
-
-    //newIrradianceValue = vec3(isFragmentVisible, isFragmentVisible, isFragmentVisible);
-
+    //Lamps only shoot but do not accumulate - needed to eliminate a back-and-forth selection issue between lamp and a close wall
     if (isLamp) {
         newIrradianceValue = oldIrradianceValue;
         newRadianceValue = oldRadianceValue;
     }
     else {
-        
         newIrradianceValue = oldIrradianceValue + deltaIrradiance;
-
-        //newIrradianceValue = vec3(isFragmentVisible, isFragmentVisible, isFragmentVisible);
-
-        //Instead of this, normalising the value if any exceeds 1 might be more sensible    
-        
-        
-
         newRadianceValue = oldRadianceValue + deltaRadiance;
     }
 }

@@ -22,13 +22,14 @@ void main() {
         result += ambient;
     }
 
+    //Retrieve the irradiance value from the irradiance texture
     vec3 irradianceValue = texture(irradianceTexture, textureCoord).rgb;
 
     vec3 diffuseValue = texture(texture_diffuse0, textureCoord).rgb;
 
     result += irradianceValue * diffuseValue;
 
-    
+    //Clamp the result to the diffuse value    
     if (result.r > diffuseValue.r) {
         result.r = diffuseValue.r;
     }
@@ -39,8 +40,7 @@ void main() {
         result.b = diffuseValue.b;
     }
     
-
-
+    //Apply gamma correction
     result = pow(result, vec3(1.0/2.2));
 
     fragColour = vec4(result, 1.0);

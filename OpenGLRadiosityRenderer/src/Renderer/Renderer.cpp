@@ -92,13 +92,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		return;
 	}
 
-	std::cout << rendererResolution << std::endl;
-	std::cout << lightmapResolution << std::endl;
-	std::cout << attenuationType << std::endl;
-	std::cout << continuousUpdate << std::endl;
-	std::cout << textureFiltering << std::endl;
-	std::cout << multisampling << std::endl;
-
 	if (rendererResolution == static_cast<int>(RENDERER_RESOLUTION::RES_800x800)) {
 		SCREEN_WIDTH = 800;
 		SCREEN_HEIGHT = 800;
@@ -158,6 +151,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	}
 
 	glEnable(GL_DEPTH_TEST);
+
+	//The resolve programs use the ShooterMeshSelection vertex shader, since both need to draw a screen-aligned quad
 
 	ShaderLoader preprocessShader("../src/Shaders/Preprocess.vs", "../src/Shaders/Preprocess.fs");
 
@@ -523,7 +518,12 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	glfwTerminate();
 }
 
-//I'm fairly sure most of the FBOs and maybe most of the textures can be created as a preprocess step, which should result in significant speedup
+//The functions below (until the processInput function) handle the radiosity functionality
+
+//Most of the OpenGL resources (textures and framebuffers) could be created as what would be the equivalent of object variables, however, 
+//in the current implementation they are created locally - I feel it makes the code slightly more understandable (since the resources are
+//declared and created locally) but might introduce a slight performance overhead - when optimising for production transitioning to the
+//former way would likely be beneficial
 
 //This function has to be called by the user after the lights are placed but before the start of the radiosity iteration
 void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix) {

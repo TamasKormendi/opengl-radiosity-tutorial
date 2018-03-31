@@ -17,6 +17,7 @@ void main() {
     vec3 finalUV = vec3(0.0, 0.0, 0.0);
 
     for (int i = 0; i <8; ++i) {
+        //texelFetch is needed to sample multisampled textures
         vec3 fetchedPos = texelFetch(multisampledPosTexture, ivec2(gl_FragCoord.xy), i).rgb;
         vec3 fetchedNormal = texelFetch(multisampledNormalTexture, ivec2(gl_FragCoord.xy), i).rgb;
         vec3 fetchedID = texelFetch(multisampledIDTexture, ivec2(gl_FragCoord.xy), i).rgb;
@@ -30,19 +31,14 @@ void main() {
             finalUV = fetchedUV;
         }
 
-
-
         finalPos = max(finalPos, fetchedPos);
         finalNormal = max(finalNormal, fetchedNormal);
         finalID = max(finalID, fetchedID);
         finalUV = max(finalUV, fetchedUV);
     }
 
-    //finalColour /= 8;
-
     posData = finalPos;
     normalData = finalNormal;
     idData = finalID;
     uvData = finalUV;
-
 }

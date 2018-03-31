@@ -1,13 +1,6 @@
 #version 450 core
 
-/*
-layout (location = 0) out vec3 primitiveID;
-
-in vec3 ID;
-*/
-
+//Simple passthrough shader
 void main() {
-
-    //primitiveID = ID;
 
 }

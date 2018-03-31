@@ -1,16 +1,13 @@
-//Parts of this file adapted from:
+//A few lines for the window/context creation are from:
 //https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/1.2.hello_window_clear/hello_window_clear.cpp 
 //and
 //http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/
-//Additional code in this file and in the GLSL files (Shaders folder) from https://learnopengl.com/ tutorials
 
 #include "stdafx.h"
 
 #include <iostream>
 #include <vector>
 #include <string>
-
-//#include <OpenGLGlobalHeader.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -162,8 +159,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	glEnable(GL_DEPTH_TEST);
 
-	//ShaderLoader mainShader("../src/Shaders/MainObject.vs", "../src/Shaders/MainObject.fs");
-	//ShaderLoader lampShader("../src/Shaders/LampObject.vs", "../src/Shaders/LampObject.fs");
 	ShaderLoader preprocessShader("../src/Shaders/Preprocess.vs", "../src/Shaders/Preprocess.fs");
 
 	ShaderLoader preprocessShaderMultisample("../src/Shaders/PreprocessMultisample.vs", "../src/Shaders/PreprocessMultisample.fs");
@@ -171,12 +166,12 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	ShaderLoader shooterMeshSelectionShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/ShooterMeshSelection.fs");
 
-	//ShaderLoader visibilityTextureShader("../src/Shaders/HemisphereVisibilityTexture.vs", "../src/Shaders/HemisphereVisibilityTexture.fs");
 	ShaderLoader lightmapUpdateShader("../src/Shaders/LightmapUpdate.vs", "../src/Shaders/LightmapUpdate.fs");
 	ShaderLoader lightmapUpdateShaderMultisample("../src/Shaders/LightmapUpdateMultisample.vs", "../src/Shaders/LightmapUpdateMultisample.fs");
 	ShaderLoader lightmapResolveShader("../src/Shaders/ShooterMeshSelection.vs", "../src/Shaders/LightmapResolve.fs");
 
 	ShaderLoader finalRenderShader("../src/Shaders/FinalRender.vs", "../src/Shaders/FinalRender.fs");
+
 	ShaderLoader framebufferDebugShader("../src/Shaders/FramebufferDebug.vs", "../src/Shaders/FramebufferDebug.fs");
 
 	ShaderLoader hemicubeVisibilityShader("../src/Shaders/HemicubeVisibilityTexture.vs", "../src/Shaders/HemicubeVisibilityTexture.fs");
@@ -244,6 +239,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	//RENDER LOOP STARTS HERE
 	while (!glfwWindowShouldClose(window)) {
+
+		//This section is for the FPS counter
 		++frameCounter;
 		
 		float currentFrameTime = glfwGetTime();
@@ -255,7 +252,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		if ((currentFrameTime - fpsTimeCounter) >= 1.0) {
 			double actualElapsedTime = (currentFrameTime - fpsTimeCounter);
 
-			//std::cout << "mSPF: " << ((actualElapsedTime * 1000) / (double)frameCounter) << " FPS: " << ((double)frameCounter / actualElapsedTime) << std::endl;
+			std::cout << "mSPF: " << ((actualElapsedTime * 1000) / (double)frameCounter) << " FPS: " << ((double)frameCounter / actualElapsedTime) << std::endl;
 
 			frameCounter = 0;
 			fpsTimeCounter += actualElapsedTime;
@@ -269,34 +266,16 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			addLampMesh = !addLampMesh;
 		}
 
+		//Variables for drawing the scene
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		finalRenderShader.useProgram();
 
-		//mainShader.setUniformVec3("viewPos", camera.position);
-		//mainShader.setUniformInt("lightAmount", lightLocations.size());
-
-		//TODO: Ambient value is most likely going to get axed along with material.ambient
-		
-		/*
-		for (int i = 0; i < lightLocations.size(); ++i) {
-			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].position", lightLocations.at(i));
-			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].ambient", 0.1f, 0.1f, 0.1f);
-			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].diffuse", 1.0f, 1.0f, 1.0f);
-			mainShader.setUniformVec3("pointLights[" + std::to_string(i) + "].specular", 1.0f, 1.0f, 1.0f);
-
-			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].constant", 1.0f);
-			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].linear", 0.007f);
-			mainShader.setUniformFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.0002f);
-		}
-		*/
-
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 		finalRenderShader.setUniformMat4("projection", projection);
-		//mainShader.setUniformMat4("ortho", ortho);
 		finalRenderShader.setUniformMat4("view", view);
 
 		glm::mat4 model;
@@ -307,9 +286,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 		glEnable(GL_CULL_FACE);
 
+		//The preprocess function is called here
 		if (preprocessDone == 1) {
-
-				//preprocess(mainModel, preprocessShader, model);
 
 			if (multisampling) {
 				preprocessMultisample(mainModel, preprocessShaderMultisample, model, preprocessResolveShader, shooterMeshSelectionQuadVAO);
@@ -318,38 +296,26 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				preprocess(mainModel, preprocessShader, model);
 			}
 
-
-			/*std::cout << mainModel.meshes[7].uvData[1533] << std::endl;
-			std::cout << mainModel.meshes[7].uvData[1534] << std::endl;
-			std::cout << mainModel.meshes[7].uvData[1535] << std::endl;*/
-
 			//This is needed so preprocess can only be done once
-
 			std::cout << "Preprocess done" << std::endl;
 			++preprocessDone;
 		}
 
+		//Radiosity variables
 		glm::vec3 shooterRadiance;
 		glm::vec3 shooterWorldspacePos;
 		glm::vec3 shooterWorldspaceNormal;
 		glm::vec2 shooterUV;
 		int shooterMeshIndex;
 
-
 		//Radiosity iteration section
 		if (doRadiosityIteration) {
-			
-			//for (int i = 0; i < 100; ++i) {
 
 			if (debugInitialised) {
-				//glDeleteTextures(1, &debugTexture);
-
 				for (unsigned int debugTexture : debugTextures) {
 					glDeleteTextures(1, &debugTexture);
 				}
 			}
-
-
 
 			if (meshSelectionNeeded) {
 				shooterMesh = selectShooterMesh(mainModel, shooterMeshSelectionShader, shooterMeshSelectionQuadVAO);
@@ -357,34 +323,13 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				meshSelectionNeeded = false;
 			}
 
+			//Main body of the radiosity loop
 			if (continuousUpdate) {
-				//while (!meshSelectionNeeded) {
-
-
 				selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
-
-
-
-				//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
-
-
 
 				std::cout << shooterWorldspaceNormal.x << std::endl;
 				std::cout << shooterWorldspaceNormal.y << std::endl;
 				std::cout << shooterWorldspaceNormal.z << std::endl;
-
-
-
-				//TODO: The upVector most likely fails if we have a normal along +y or -y
-				/*
-				glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
-
-				if (upVec.y == 0.0f && upVec.z == 0.0f) {
-				upVec.y = 1.0f;
-				}
-
-				glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
-				*/
 
 				std::vector<glm::mat4> shooterViews;
 
@@ -395,37 +340,12 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				hemicubeVisibilityShader.useProgram();
 				hemicubeVisibilityShader.setUniformMat4("projection", shooterProj);
 
-				//unsigned int visibilityTexture = createVisibilityTexture(mainModel, hemicubeVisibilityShader, model, shooterView, visibilityTextureSize);
-
 				std::vector<unsigned int> visibilityTextures = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterViews, visibilityTextureSize, shooterWorldspacePos, shooterWorldspaceNormal);
 
 				debugTextures = visibilityTextures;
 
 				debugTexture = visibilityTextures[1];
 				debugInitialised = true;
-
-				/*
-				std::cout << "Shooter red " << shooterRadiance.x << std::endl;
-				std::cout << "Shooter green " << shooterRadiance.y << std::endl;
-				std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
-				*/
-
-				//Scale down the shooter's strength - COMMENTED OUT FOR NOW
-				//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
-				//	1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
-				//	1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
-
-
-				/*
-				//This is an incredibly important section since this needs to be changed between the MSAA and non-MSAA rendering
-				lightmapUpdateShader.useProgram();
-				lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
-				lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
-				lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
-				lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
-				//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
-				updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
-				*/
 
 				if (multisampling) {
 					lightmapUpdateShaderMultisample.useProgram();
@@ -444,8 +364,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 					updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
 				}
 
-				//glDeleteTextures(1, &visibilityTexture);
-
 				for (unsigned int debugTexture : debugTextures) {
 					glDeleteTextures(1, &debugTexture);
 				}
@@ -454,42 +372,18 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				++iterationNumber;
 
-				//std::cout << i << std::endl;
-
-				//}
-				//}
 				//Uncomment this to resume manual iteration
 				//doRadiosityIteration = false;
 			}
 			else {
 				while (!meshSelectionNeeded) {
-
-
 					selectMeshBasedShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMesh);
-
-
-
-					//selectShooter(mainModel, shooterRadiance, shooterWorldspacePos, shooterWorldspaceNormal, shooterUV, shooterMeshIndex);
-
-
 
 					std::cout << shooterWorldspaceNormal.x << std::endl;
 					std::cout << shooterWorldspaceNormal.y << std::endl;
 					std::cout << shooterWorldspaceNormal.z << std::endl;
 
-
-
-					//TODO: The upVector most likely fails if we have a normal along +y or -y
-					/*
-					glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
-
-					if (upVec.y == 0.0f && upVec.z == 0.0f) {
-					upVec.y = 1.0f;
-					}
-
-					glm::mat4 shooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, upVec);
-					*/
-
+					//Used as an "out" variable for createHemicubeTextures()
 					std::vector<glm::mat4> shooterViews;
 
 					unsigned int visibilityTextureSize = 1024;
@@ -499,37 +393,12 @@ void Renderer::startRenderer(std::string objectFilepath) {
 					hemicubeVisibilityShader.useProgram();
 					hemicubeVisibilityShader.setUniformMat4("projection", shooterProj);
 
-					//unsigned int visibilityTexture = createVisibilityTexture(mainModel, hemicubeVisibilityShader, model, shooterView, visibilityTextureSize);
-
 					std::vector<unsigned int> visibilityTextures = createHemicubeTextures(mainModel, hemicubeVisibilityShader, model, shooterViews, visibilityTextureSize, shooterWorldspacePos, shooterWorldspaceNormal);
 
 					debugTextures = visibilityTextures;
 
 					debugTexture = visibilityTextures[1];
 					debugInitialised = true;
-
-					/*
-					std::cout << "Shooter red " << shooterRadiance.x << std::endl;
-					std::cout << "Shooter green " << shooterRadiance.y << std::endl;
-					std::cout << "Shooter blue " << shooterRadiance.z << std::endl;
-					*/
-
-					//Scale down the shooter's strength - COMMENTED OUT FOR NOW
-					//shooterRadiance = glm::vec3(1 * shooterRadiance.x / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
-					//	1 * shooterRadiance.y / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE),
-					//	1 * shooterRadiance.z / (::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE));
-
-
-					/*
-					//This is an incredibly important section since this needs to be changed between the MSAA and non-MSAA rendering
-					lightmapUpdateShader.useProgram();
-					lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
-					lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
-					lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
-					lightmapUpdateShader.setUniformVec2("shooterUV", shooterUV);
-					//lightmapUpdateShader.setUniformMat4("projection", shooterProj);
-					updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
-					*/
 
 					if (multisampling) {
 						lightmapUpdateShaderMultisample.useProgram();
@@ -548,8 +417,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 						updateLightmaps(mainModel, lightmapUpdateShader, model, shooterViews, visibilityTextures);
 					}
 
-					//glDeleteTextures(1, &visibilityTexture);
-
 					for (unsigned int debugTexture : debugTextures) {
 						glDeleteTextures(1, &debugTexture);
 					}
@@ -558,16 +425,13 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 					++iterationNumber;
 
-					//std::cout << i << std::endl;
-
 					}
-					//Uncomment this to resume manual iteration
+					//This line makes it sure that the scene is observable after the current shooter mesh is done shooting
 					doRadiosityIteration = false;
 			}
 		}
 
-		
-
+		//Render the scene with the lightmaps calculated up until this point
 		int lampCounter = 0;
 
 		for (unsigned int i = 0; i < mainModel.meshes.size(); ++i) {
@@ -621,6 +485,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				glBindTexture(GL_TEXTURE_2D, irradianceID);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &mainModel.meshes[i].irradianceData[0]);
 
+				//If the user desires texture filtering use linear filtering
 				if (textureFiltering) {
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -630,6 +495,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				}
 
+
+				//This prevents some lightmap bleeding if texture filtering is on, otherwise does nothing significant
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -644,6 +511,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 			}
 		}
 
+		//If framebuffer deugging is needed, check if debugInitialised == true
 		if (false) {
 			displayFramebufferTexture(framebufferDebugShader, quadVAO, debugTexture);
 		}
@@ -653,16 +521,11 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	}
 
 	glfwTerminate();
-
 }
 
 //I'm fairly sure most of the FBOs and maybe most of the textures can be created as a preprocess step, which should result in significant speedup
 
-
-//This function will be called automatically before the scene starts rendering eventually so preprocessing can be done before the rendering
-//Current issues:
-//Light placement (have to know the location of the light when doing processing, can be split into 2 parts - preprocess most of the scene and process lights at creation)
-//It is somewhat untested
+//This function has to be called by the user after the lights are placed but before the start of the radiosity iteration
 void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix) {
 	unsigned int preprocessFramebuffer;
 
@@ -733,6 +596,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 
 		shader.useProgram();
 
+		//Create readback buffers for all of the texture data
 		std::vector<GLfloat> worldspacePositionDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 		std::vector<GLfloat> normalVectorDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 
@@ -757,6 +621,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 			model.meshes[i].draw(shader);
 		}
 
+		//Read the data back to the CPU
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
@@ -771,6 +636,7 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 		model.meshes[i].idData = idDataBuffer;
 		model.meshes[i].uvData = uvDataBuffer;
 
+		//Find the texels that have triangles mapped to them
 		for (unsigned int j = 0; j < model.meshes[i].idData.size(); j += 3) {
 			float redIDValue = model.meshes[i].idData[j];
 			float greenIDValue = model.meshes[i].idData[j + 1];
@@ -783,7 +649,6 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 			}
 		}
 
-		//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
 		if (attenuationType == static_cast<int>(ATTENUATION::ATT_LINEAR) || attenuationType == static_cast<int>(ATTENUATION::ATT_QUAD)) {
 			model.meshes[i].texelArea = 1.0;
 		}
@@ -791,24 +656,15 @@ void Renderer::preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& m
 			//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
 			model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
 		}
-
-		std::cout << model.meshes[i].texelArea << std::endl;
 	}
 
-	/*
-	std::cout << normalVectorDataBuffer[1533] << std::endl;
-	std::cout << normalVectorDataBuffer[1534] << std::endl;
-	std::cout << normalVectorDataBuffer[1535] << std::endl;
-	*/
-
-	//TODO: Delete textures here if they are not needed anymore
-
-
+	//Delete textures here if they are not needed anymore
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+//Only to be called after the preprocess function
 //This function draws a 1x1 mipmap of every mesh into a screen-aligned quad, their depth weighted with the mipmap value and reads back the resulting 1x1 texture
 unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shooterMeshSelectionShader, unsigned int& screenAlignedQuadVAO) {
 	unsigned int shooterSelectionFramebuffer;
@@ -847,12 +703,12 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 	shooterMeshSelectionShader.useProgram();
 	glBindVertexArray(screenAlignedQuadVAO);
 
-
-	//unsigned int meshID = 0;
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		unsigned int meshID = i;
 
+
+		//Calculate an RGB ID for the mesh based on the mesh ID
 		float redValue = meshID % 100;
 
 		int greenRemainingValue = (int)meshID / 100;
@@ -884,12 +740,13 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 		shooterMeshSelectionShader.setUniformInt("mipmappedRadianceTexture", 0);
 		glBindTexture(GL_TEXTURE_2D, mipmappedRadianceTexture);
 
-
+		//Draw a full, screen-aligned quad
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glDeleteTextures(1, &mipmappedRadianceTexture);
 	}
 
+	//Read back the chosen mesh ID
 	std::vector<GLfloat> shooterMeshID(1 * 1 * 3);
 
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -913,7 +770,6 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	//Dummy return for now, also need to delete whatever we need to delete before this
 	glDeleteFramebuffers(1, &shooterSelectionFramebuffer);
 	glDeleteRenderbuffers(1, &depth);
 	glDeleteTextures(1, &meshIDTexture);
@@ -924,6 +780,7 @@ unsigned int Renderer::selectShooterMesh(ObjectModel& model, ShaderLoader& shoot
 void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, unsigned int& shooterMeshIndex) {
 	unsigned int texelIndex = model.meshes[shooterMeshIndex].texturespaceShooterIndices[shooterIndex];
 
+	//Find the radiance of the next shooter
 	if (attenuationType == static_cast<int>(ATTENUATION::ATT_LINEAR) || attenuationType == static_cast<int>(ATTENUATION::ATT_QUAD)) {
 		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
 									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
@@ -934,13 +791,8 @@ void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadi
 									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
 									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea);
 	}
-		/*
-		//This one is for the uniform shooter size one
-		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
-									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
-									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
-		*/
 
+	//Find the other necessary information of the shooter
 	shooterWorldspacePos = glm::vec3(model.meshes[shooterMeshIndex].worldspacePosData[texelIndex], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspacePosData[texelIndex + 2]);
 
 	shooterWorldspaceNormal = glm::vec3(model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex], model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex + 1], model.meshes[shooterMeshIndex].worldspaceNormalData[texelIndex + 2]);
@@ -952,9 +804,8 @@ void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadi
 	model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] = 0.0f;
 	model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] = 0.0f;
 
-	
-	//std::cout << "Processing shooter number " << shooterIndex << " out of " << model.meshes[shooterMeshIndex].texturespaceShooterIndices.size();
 
+	//Check if mesh selection is needed, if not then iterate
 	if (shooterIndex >= model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() - 1) {
 		meshSelectionNeeded = true;
 
@@ -963,13 +814,10 @@ void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadi
 	else {
 		++shooterIndex;
 	}
-
-
 }
 
-//Only to be called after the preprocess function
-//Do note that this function is incredibly slow - in a final version this functionality would be optimally handled on the GPU but for now, this is sufficient
-//TODO: Change this to per-mesh selection followed by linear shooter processing (the former through mipmapping)
+
+//Old shooter selection function: selects the texel with the highest energy but it is incredibly slow - replaced by the mesh-based shooter selection functions
 void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm::vec3& shooterWorldspacePos, glm::vec3& shooterWorldspaceNormal, glm::vec2& shooterUV, int& shooterMeshIndex) {
 	float maxLuminance = 0.0f;
 
@@ -1025,6 +873,7 @@ void Renderer::selectShooter(ObjectModel& model, glm::vec3& shooterRadiance, glm
 	model.meshes[meshIndex].radianceData[pixelIndex + 2] = 0.0f;
 }
 
+//Old visibility texture function - creates a texture with hemisphere visibility calculation - produced way too many artifacts and thus it is replaced by the hemicube visibility function
 unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader& visibilityShader, glm::mat4& mainObjectModelMatrix, glm::mat4& viewMatrix, unsigned int& resolution) {
 	unsigned int visibilityFramebuffer;
 
@@ -1106,6 +955,8 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 	float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+
+	//For an explanation take a look at the "double up" part in the report
 	glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	glm::vec3 normalisedShooterNormal = glm::normalize(shooterWorldspaceNormal);
@@ -1120,16 +971,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	glm::vec3 hemicubeRight = glm::normalize(glm::cross(shooterWorldspaceNormal, worldUp));
 	glm::vec3 hemicubeUp = glm::normalize(glm::cross(hemicubeRight, shooterWorldspaceNormal));
 
-
-	/*
-	glm::vec3 upVec = glm::vec3(shooterWorldspaceNormal.x, shooterWorldspaceNormal.z, -shooterWorldspaceNormal.y);
-
-	if (upVec.y == 0.0f && upVec.z == 0.0f) {
-		upVec.y = 1.0f;
-	}
-	*/
-
-
 	glm::mat4 frontShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + shooterWorldspaceNormal, hemicubeUp);
 
 	glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + (-hemicubeRight), hemicubeUp);
@@ -1137,16 +978,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 	glm::mat4 upShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + hemicubeUp, -normalisedShooterNormal);
 	glm::mat4 downShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + (-hemicubeUp), normalisedShooterNormal);
-
-
-	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, -shooterWorldspaceNormal.x), upVec);
-	//glm::mat4 rightShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(-shooterWorldspaceNormal.z, shooterWorldspaceNormal.y, shooterWorldspaceNormal.x), upVec);
-
-	//glm::vec3 upUpVec = glm::vec3(upVec.x, upVec.z, -upVec.y);
-	//glm
-
-	//This would actually shoot up
-	//glm::mat4 leftShooterView = glm::lookAt(shooterWorldspacePos, shooterWorldspacePos + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
 
 	viewMatrices.push_back(frontShooterView);
 
@@ -1159,6 +990,10 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 	unsigned int hemicubeFrontFramebuffer;
 	glGenFramebuffers(1, &hemicubeFrontFramebuffer);
+
+	//The upcoming part renders the scene 5 times (for each hemicube face)
+	//Each render pass could be abstracted away into a function in order to eliminate code repetition, however,
+	//I find that this way the code is slightly easier to understand, since everything is in one place
 
 	unsigned int frontDepthMap;
 	glGenTextures(1, &frontDepthMap);
@@ -1294,7 +1129,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 		hemicubeShader.useProgram();
 
-
 		hemicubeShader.setUniformMat4("projection", shooterProj);
 
 		hemicubeShader.setUniformMat4("view", rightShooterView);
@@ -1345,7 +1179,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		hemicubeShader.useProgram();
-
 
 		hemicubeShader.setUniformMat4("projection", shooterProj);
 
@@ -1398,7 +1231,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 		hemicubeShader.useProgram();
 
-
 		hemicubeShader.setUniformMat4("projection", shooterProj);
 
 		hemicubeShader.setUniformMat4("view", downShooterView);
@@ -1444,7 +1276,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 
 //The shooter information has to be bound to the lightmapUpdateShader before calling this function
 void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures) {
-	//std::cout << " Start: " << glfwGetTime() << std::endl;
 
 	unsigned int lightmapFramebuffer;
 
@@ -1489,7 +1320,6 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 
 	int lampCounter = 0;
 
-	//std::cout << "Loop start: " << glfwGetTime() << std::endl;
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1545,25 +1375,25 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
 		glBindTexture(GL_TEXTURE_2D, radianceID);
 		
-		//Also bind the visibility textures, they're a bit scattered for now
+		//Also bind the visibility textures
 		glActiveTexture(GL_TEXTURE2);
 		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
 
-		glActiveTexture(GL_TEXTURE10);
-		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 10);
+		glActiveTexture(GL_TEXTURE3);
+		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 3);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
 
-		glActiveTexture(GL_TEXTURE11);
-		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 11);
+		glActiveTexture(GL_TEXTURE4);
+		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 4);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
 
-		glActiveTexture(GL_TEXTURE12);
-		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 12);
+		glActiveTexture(GL_TEXTURE5);
+		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 5);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
 
-		glActiveTexture(GL_TEXTURE13);
-		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 13);
+		glActiveTexture(GL_TEXTURE6);
+		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 6);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
 
 		if (model.meshes[i].isLamp) {
@@ -1587,37 +1417,29 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 			model.meshes[i].draw(lightmapUpdateShader);
 		}
 
-		//std::cout << "Readback Start: " << glfwGetTime() << std::endl;
+		//Read back the new ir/radiance values
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newIrradianceDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newRadianceDataBuffer[0]);
-		//std::cout << "Readback end: " << glfwGetTime() << std::endl;
 
-		//std::cout << "Copy Start: " << glfwGetTime() << std::endl;
 		model.meshes[i].irradianceData = newIrradianceDataBuffer;
 		model.meshes[i].radianceData = newRadianceDataBuffer;
-		//std::cout << "Copy end: " << glfwGetTime() << std::endl;
 
 		glDeleteTextures(1, &irradianceID);
 		glDeleteTextures(1, &radianceID);
 	}
-	//std::cout << "Loop end: " << glfwGetTime() << std::endl;
-
-	//We'll need to delete the framebuffer and the newIrradiance and newRadiance textures here
 
 	glDeleteTextures(1, &newIrradianceTexture);
 	glDeleteTextures(1, &newRadianceTexture);
 	glDeleteRenderbuffers(1, &depth);
 	glDeleteFramebuffers(1, &lightmapFramebuffer);
 
-	//glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	//std::cout << "Function end: " << glfwGetTime() << std::endl;
 }
 
+//Multisampled version of the preprocess function
 void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO) {
 	unsigned int intermediateFramebuffer;
 
@@ -1681,32 +1503,24 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 	glGenTextures(1, &worldspacePosData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData);
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, worldspacePosData, 0);
 
 	//Create texture to hold worldspace-normal data
 	glGenTextures(1, &worldspaceNormalData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData);
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, worldspaceNormalData, 0);
 
 	//Create texture to hold triangle IDs in texturespace
 	glGenTextures(1, &idData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, idData);
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D_MULTISAMPLE, idData, 0);
 
 	//Create texture to hold UV-coordinate data in texturespace
 	glGenTextures(1, &uvData);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, uvData);
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D_MULTISAMPLE, uvData, 0);
 
 	//Depth buffer
@@ -1760,12 +1574,9 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 			model.meshes[i].draw(shader);
 		}
 
+		//Do a custom resolve pass
 		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 		glClear(GL_COLOR_BUFFER_BIT);
-		//glDrawBuffer(GL_COLOR_ATTACHMENT1);
-
-		//glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
 
 		resolveShader.useProgram();
 		glBindVertexArray(screenAlignedQuadVAO);
@@ -1789,15 +1600,9 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
-
-
 		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 
-		/*
-		glReadBuffer(GL_COLOR_ATTACHMENT1);
-		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &normalVectorDataBuffer[0]);
-		*/
-
+		//Read back the resolved values
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &worldspacePositionDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
@@ -1813,6 +1618,8 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 		model.meshes[i].idData = idDataBuffer;
 		model.meshes[i].uvData = uvDataBuffer;
 
+
+		//Find the texels that have trianlges mapped to them
 		for (unsigned int j = 0; j < model.meshes[i].idData.size(); j += 3) {
 			float redIDValue = model.meshes[i].idData[j];
 			float greenIDValue = model.meshes[i].idData[j + 1];
@@ -1833,28 +1640,15 @@ void Renderer::preprocessMultisample(ObjectModel& model, ShaderLoader& shader, g
 			//1.0 + ... is to prevent downscaling, which usually makes scenes way too dark
 			model.meshes[i].texelArea = 1.0 + model.meshes[i].overallArea / model.meshes[i].texturespaceShooterIndices.size();
 		}
-
-		//std::cout << model.meshes[i].texelArea << std::endl;
 	}
-
-	/*
-	std::cout << normalVectorDataBuffer[1533] << std::endl;
-	std::cout << normalVectorDataBuffer[1534] << std::endl;
-	std::cout << normalVectorDataBuffer[1535] << std::endl;
-	*/
-
-	//TODO: Delete textures here if they are not needed anymore
-
-
+	//Delete textures here if they are not needed anymore
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+//Multisampled version of the lightmap update function
 void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO) {
-	//std::cout << " Start: " << glfwGetTime() << std::endl;
-
-	
 
 	unsigned int intermediateFramebuffer;
 
@@ -1898,15 +1692,11 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 	glGenTextures(1, &newIrradianceTexture);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, newIrradianceTexture);
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, newIrradianceTexture, 0);
 
 	glGenTextures(1, &newRadianceTexture);
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, newRadianceTexture);
 	glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_TRUE);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, newRadianceTexture, 0);
 
 	unsigned int depth;
@@ -1929,7 +1719,6 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 
 	int lampCounter = 0;
 
-	//std::cout << "Loop start: " << glfwGetTime() << std::endl;
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 		glBindFramebuffer(GL_FRAMEBUFFER, lightmapFramebuffer);
 
@@ -1966,7 +1755,6 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 
-
 		unsigned int radianceID;
 		glGenTextures(1, &radianceID);
 
@@ -1985,25 +1773,25 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
 		glBindTexture(GL_TEXTURE_2D, radianceID);
 
-		//Also bind the visibility textures, they're a bit scattered for now
+		//Also bind the visibility textures
 		glActiveTexture(GL_TEXTURE2);
 		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
 
-		glActiveTexture(GL_TEXTURE10);
-		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 10);
+		glActiveTexture(GL_TEXTURE3);
+		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 3);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
 
-		glActiveTexture(GL_TEXTURE11);
-		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 11);
+		glActiveTexture(GL_TEXTURE4);
+		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 4);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
 
-		glActiveTexture(GL_TEXTURE12);
-		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 12);
+		glActiveTexture(GL_TEXTURE5);
+		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 5);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
 
-		glActiveTexture(GL_TEXTURE13);
-		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 13);
+		glActiveTexture(GL_TEXTURE6);
+		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 6);
 		glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
 
 		if (model.meshes[i].isLamp) {
@@ -2027,25 +1815,8 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 			model.meshes[i].draw(lightmapUpdateShader);
 		}
 
-		/*
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, lightmapFramebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
-		glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-		glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, lightmapFramebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT1);
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFramebuffer);
-		glDrawBuffer(GL_COLOR_ATTACHMENT1);
-
-		glBlitFramebuffer(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		*/
-
-		
+		//Do the custom resolve pass
 		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -2065,25 +1836,18 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 
 		glBindFramebuffer(GL_FRAMEBUFFER, intermediateFramebuffer);
 
-
-		//std::cout << "Readback Start: " << glfwGetTime() << std::endl;
+		//Read back the resolved lightmap values
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newIrradianceDataBuffer[0]);
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glReadPixels(0, 0, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, GL_RGB, GL_FLOAT, &newRadianceDataBuffer[0]);
-		//std::cout << "Readback end: " << glfwGetTime() << std::endl;
 
-		//std::cout << "Copy Start: " << glfwGetTime() << std::endl;
 		model.meshes[i].irradianceData = newIrradianceDataBuffer;
 		model.meshes[i].radianceData = newRadianceDataBuffer;
-		//std::cout << "Copy end: " << glfwGetTime() << std::endl;
 
 		glDeleteTextures(1, &irradianceID);
 		glDeleteTextures(1, &radianceID);
 	}
-	//std::cout << "Loop end: " << glfwGetTime() << std::endl;
-
-	//We'll need to delete the framebuffer and the newIrradiance and newRadiance textures here
 
 	glDeleteTextures(1, &newIrradianceTexture);
 	glDeleteTextures(1, &newRadianceTexture);
@@ -2096,11 +1860,8 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 	glDeleteFramebuffers(1, &intermediateFramebuffer);
 	glDeleteFramebuffers(1, &lightmapFramebuffer);
 
-	//glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	//std::cout << "Function end: " << glfwGetTime() << std::endl;
 }
 
 void Renderer::processInput(GLFWwindow* window) {
@@ -2140,6 +1901,7 @@ void Renderer::processInput(GLFWwindow* window) {
 
 
 //This function is adapted from https://learnopengl.com/In-Practice/Debugging
+//Right now it is not in use
 void Renderer::displayFramebufferTexture(ShaderLoader& debugShader, unsigned int& debugVAO, unsigned int textureID) {
 
 	debugShader.useProgram();

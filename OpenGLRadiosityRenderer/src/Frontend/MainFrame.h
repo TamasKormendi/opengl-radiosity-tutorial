@@ -2,6 +2,7 @@
 #define MAINFRAME_H
 
 class Renderer;
+class SettingsFrame;
 
 class MainFrame : public wxFrame {
 
@@ -16,10 +17,14 @@ private:
 
 	wxTextCtrl* filepathBox;
 
+	SettingsFrame* settings;
+
 	void OnLaunchRenderer(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
 	void OpenFileSelector(wxCommandEvent& WXUNUSED(event));
+
+	void OpenSettings(wxCommandEvent& event);
 
 	wxDECLARE_EVENT_TABLE();
 };

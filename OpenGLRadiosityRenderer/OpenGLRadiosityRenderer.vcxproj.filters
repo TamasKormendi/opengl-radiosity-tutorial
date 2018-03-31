@@ -66,6 +66,9 @@
     <ClInclude Include="src\Renderer\RadiosityConfig.h">
       <Filter>Source Files\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Frontend\SettingsFrame.h">
+      <Filter>Source Files\Frontend</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\stdafx.cpp">
@@ -97,6 +100,9 @@
     </ClCompile>
     <ClCompile Include="src\Renderer\Triangle.cpp">
       <Filter>Source Files\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Frontend\SettingsFrame.cpp">
+      <Filter>Source Files\Frontend</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

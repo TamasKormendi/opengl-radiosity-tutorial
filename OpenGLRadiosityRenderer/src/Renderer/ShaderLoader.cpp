@@ -111,6 +111,8 @@ void ShaderLoader::checkCompileErrors(unsigned int shaderID, std::string type) {
 	}
 }
 
+//Uniform setting functions
+
 void ShaderLoader::setUniformBool(const std::string &name, bool value) const {
 	glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
 }

@@ -158,6 +158,7 @@
     <ClInclude Include="inc\OpenGLGlobalHeader.h" />
     <ClInclude Include="src\Frontend\MainApp.h" />
     <ClInclude Include="src\Frontend\MainFrame.h" />
+    <ClInclude Include="src\Frontend\SettingsFrame.h" />
     <ClInclude Include="src\Renderer\Camera.h" />
     <ClInclude Include="src\Renderer\ObjectMesh.h" />
     <ClInclude Include="src\Renderer\ObjectModel.h" />
@@ -172,6 +173,7 @@
   <ItemGroup>
     <ClCompile Include="src\Frontend\MainApp.cpp" />
     <ClCompile Include="src\Frontend\MainFrame.cpp" />
+    <ClCompile Include="src\Frontend\SettingsFrame.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\Camera.cpp" />
     <ClCompile Include="src\Renderer\ObjectMesh.cpp" />

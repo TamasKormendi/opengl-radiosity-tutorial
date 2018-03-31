@@ -10,9 +10,18 @@ class Renderer {
 public:
 	Renderer();
 
+	void setParameters(int& rendererResolution, int& lightmapResolution, int& attenuationType, bool& continuousUpdate, bool& textureFiltering, bool& multisampling);
+
 	void startRenderer(std::string objectFilepath);
 
 private:
+	int rendererResolution;
+	int lightmapResolution;
+	int attenuationType;
+	bool continuousUpdate;
+	bool textureFiltering;
+	bool multisampling;
+
 	void processInput(GLFWwindow* window);
 
 	void preprocess(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix);
@@ -36,6 +45,11 @@ private:
 	void updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures);
 
 	void displayFramebufferTexture(ShaderLoader& debugShader, unsigned int& debugVAO, unsigned int textureID);
+
+	void preprocessMultisample(ObjectModel& model, ShaderLoader& shader, glm::mat4& mainObjectModelMatrix, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO);
+
+	void updateLightmapsMultisample(ObjectModel& model, ShaderLoader& lightmapUpdateShader, glm::mat4& mainObjectModelMatrix, std::vector<glm::mat4>& viewMatrices, std::vector<unsigned int>& visibilityTextures, ShaderLoader& resolveShader, unsigned int& screenAlignedQuadVAO);
+
 };
 
 #endif

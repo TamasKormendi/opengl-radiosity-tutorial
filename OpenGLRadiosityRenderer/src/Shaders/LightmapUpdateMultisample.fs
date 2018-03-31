@@ -1,24 +1,22 @@
-//Note: when modifying the lightmap update shaders make sure to update the corresponding multisampled ones as well
-
 #version 450 core
 
 layout (location = 0) out vec3 newIrradianceValue;
 layout (location = 1) out vec3 newRadianceValue;
 
-in vec3 fragPos;
-in vec3 normal;
-in vec2 textureCoord;
-in vec3 ID;
+centroid in vec3 fragPos;
+centroid in vec3 normal;
+centroid in vec2 textureCoord;
+centroid in vec3 ID;
 
-in vec3 cameraspace_position;
-in vec3 normalLightSpace;
+centroid in vec3 cameraspace_position;
+centroid in vec3 normalLightSpace;
 
-in vec4 fragPosLightSpace;
+centroid in vec4 fragPosLightSpace;
 
-in vec4 fragPosLeftLightSpace;
-in vec4 fragPosRightLightSpace;
-in vec4 fragPosUpLightSpace;
-in vec4 fragPosDownLightSpace;
+centroid in vec4 fragPosLeftLightSpace;
+centroid in vec4 fragPosRightLightSpace;
+centroid in vec4 fragPosUpLightSpace;
+centroid in vec4 fragPosDownLightSpace;
 
 uniform vec3 shooterRadiance;
 uniform vec3 shooterWorldspacePos;
@@ -93,7 +91,6 @@ void main() {
 
     isFragmentVisible = centreShadow + leftShadow + rightShadow + upShadow + downShadow;
 
-
     const float pi = 3.1415926535;
 
     //Form factor between shooter and receiver
@@ -161,7 +158,7 @@ void main() {
         newRadianceValue = oldRadianceValue;
     }
     else {
-        newIrradianceValue = oldIrradianceValue + deltaIrradiance;
+        newIrradianceValue = oldIrradianceValue + deltaIrradiance; 
         newRadianceValue = oldRadianceValue + deltaRadiance;
     }
 }

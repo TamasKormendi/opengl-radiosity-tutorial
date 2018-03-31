@@ -1,3 +1,5 @@
+//Code adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
+
 #ifndef CAMERA_H
 #define CAMERA_H
 
@@ -7,7 +9,6 @@ enum CameraMovement {
 	LEFT,
 	RIGHT
 };
-
 
 
 class Camera {

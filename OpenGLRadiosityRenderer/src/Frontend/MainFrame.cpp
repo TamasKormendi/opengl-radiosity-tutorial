@@ -1,4 +1,4 @@
-//Code adapted from http://docs.wxwidgets.org/3.1/overview_helloworld.html
+//Code loosely adapted from http://docs.wxwidgets.org/3.1/overview_helloworld.html and https://wiki.wxwidgets.org/Writing_Your_First_Application-Common_Dialogs
 
 #include "stdafx.h"
 
@@ -24,7 +24,6 @@ enum {
 };
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
-	//EVT_MENU(ID_LAUNCH_RENDERER, MainFrame::OnLaunchRenderer)
 	EVT_BUTTON(ID_LAUNCH_RENDERER_BUTTON, MainFrame::OnLaunchRenderer)
 	EVT_BUTTON(ID_QUIT_BUTTON, MainFrame::OnExit)
 	EVT_BUTTON(ID_FILESELECTOR_BUTTON, MainFrame::OpenFileSelector)
@@ -37,30 +36,10 @@ wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 			: wxFrame(NULL, wxID_ANY, title, pos, size) {
-	
-	/* wxMenu* menuFile = new wxMenu();
-
-	menuFile->Append(ID_LAUNCH_RENDERER, "Launch Renderer window", "Help");
-
-	menuFile->AppendSeparator();
-	menuFile->Append(wxID_EXIT);
-
-	wxMenu* menuHelp = new wxMenu();
-	menuHelp->Append(wxID_ABOUT);
-
-	wxMenuBar* menuBar = new wxMenuBar();
-
-	menuBar->Append(menuFile, "&File");
-	menuBar->Append(menuHelp, "&Help");
-
-	SetMenuBar(menuBar); */
 
 	settings = new SettingsFrame(this, "Settings", wxPoint(50, 50), wxSize(450, 340));
 
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-
-	//wxButton* startButton = new wxButton(this, ID_LAUNCH_RENDERER_BUTTON, _T("Launch Renderer"), 0, 0, 0);
-	//wxButton* quitButton = new wxButton(this, ID_QUIT_BUTTON, _T("Quit"), 0, 0, 0);
 
 	filepathBox = new wxTextCtrl(this, -1, "Please select a .obj file", wxDefaultPosition, wxSize(200, 20), wxTE_RICH | wxTE_CENTRE | wxTE_READONLY, wxDefaultValidator, wxTextCtrlNameStr);
 

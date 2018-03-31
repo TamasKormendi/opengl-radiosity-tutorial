@@ -1,7 +1,7 @@
+//Adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/model.h and the corresponding tutorial
+
 #ifndef OBJECTMODEL_H
 #define OBJECTMODEL_H
-
-//TODO: SORT OUT IMPORTS ASAP
 
 #include <assimp\Importer.hpp>
 #include <assimp\scene.h>

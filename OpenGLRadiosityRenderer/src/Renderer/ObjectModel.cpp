@@ -158,10 +158,7 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 		vertices.push_back(vertex);
 	}
 
-
-	//TODO: This part is probably going to be relevant when starting to implement Radiosity patches
 	for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
-		//Shouldn't this be a pointer?
 		aiFace face = mesh->mFaces[i];
 
 		for (unsigned int j = 0; j < face.mNumIndices; ++j) {
@@ -171,12 +168,10 @@ ObjectMesh ObjectModel::processMesh(aiMesh* mesh, const aiScene* scene) {
 
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-	//TODO: I have some concerns about this part of the code so do investigate if something fishy is going on
-
 	std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
 	std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
 
-	//??
+	//Only diffuse textures are handled properly by the program but apparently Assimp considers normal maps as "HEIGHT" and height maps as "AMBIENT"
 	std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
 	std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
 

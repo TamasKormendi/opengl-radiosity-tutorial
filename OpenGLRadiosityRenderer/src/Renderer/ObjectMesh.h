@@ -1,3 +1,5 @@
+//Code adapted from https://learnopengl.com/#!Model-Loading/Mesh
+
 #ifndef OBJECTMESH_H
 #define OBJECTMESH_H
 

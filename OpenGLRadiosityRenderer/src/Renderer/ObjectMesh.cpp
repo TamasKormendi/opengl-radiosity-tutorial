@@ -16,8 +16,6 @@
 
 #include <Renderer\RadiosityConfig.h>
 
-long long int meshAmount = 0;
-
 ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures, bool isLamp, float scale) {
 	this->vertices = vertices;
 	this->indices = indices;
@@ -28,8 +26,6 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 	this->scale = scale;
 
 	this->overallArea = 0.0;
-
-	std::cout << ::RADIOSITY_TEXTURE_SIZE << std::endl;
 
 	if (isLamp) {
 		irradianceData = std::vector<GLfloat>(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3, 1.0f);
@@ -50,9 +46,8 @@ ObjectMesh::ObjectMesh(std::vector<Vertex>& vertices, std::vector<unsigned int>&
 
 	setupMesh();
 
+	//The final overall area is scale^2 * sum area of triangles obtained in setupMesh()
 	overallArea = (scale * scale) * overallArea;
-
-	//std::cout << overallArea << std::endl;
 
 	//This is properly initialised in the preprocess step
 	texelArea = 0;
@@ -73,6 +68,7 @@ void ObjectMesh::draw(ShaderLoader& shaderLoader) {
 		std::string number;
 		std::string name = textures[i].type;
 
+		//Only the diffuse texture is used in the current renderer
 		if (name == "texture_diffuse") {
 			number = std::to_string(diffuseNumber++);
 		}
@@ -127,28 +123,30 @@ void ObjectMesh::setupMesh() {
 
 	glBufferData(GL_ARRAY_BUFFER, unwrappedVertices.size() * sizeof(Vertex), &unwrappedVertices[0], GL_STATIC_DRAW);
 
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-
+	//Vertex position
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
 
+	//Vertex normal
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
+	//Vertex texture coordinates
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, textureCoords));
 
+	//Vertex triangle ID
 	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, rgbID));
 
+	//These ones are not used
+	//Vertex tangent
 	glEnableVertexAttribArray(4);
 	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
 
+	//Vertex bitangent
 	glEnableVertexAttribArray(5);
 	glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, bitangent));
-
-	//std::cout << "VAO AMOUNT: " << meshAmount++ << std::endl;
 
 	glBindVertexArray(0);
 }

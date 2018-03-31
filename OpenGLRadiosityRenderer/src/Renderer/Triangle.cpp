@@ -20,7 +20,6 @@ Triangle::Triangle(Vertex v1, Vertex v2, Vertex v3) {
 
 
 //This function creates RGB IDs in the range of 1 to 256*256*256 and transforms the IDs to vec3 floats
-//TODO: write unit test
 void Triangle::calculateRGBID() {
 
 	//This part "overflows" each colour:
@@ -52,6 +51,7 @@ void Triangle::calculateRGBID() {
 
 
 //Adapted from https://www.opengl.org/discussion_boards/showthread.php/159771-How-can-I-find-the-area-of-a-3D-triangle
+//More explanation here: https://math.stackexchange.com/questions/128991/how-to-calculate-area-of-3d-triangle
 float Triangle::calculateArea() {
 	glm::vec3 v1ToV2;
 	glm::vec3 v1ToV3;
@@ -73,9 +73,6 @@ float Triangle::calculateArea() {
 
 	area = 0.5 * sqrt(normalVector.x * normalVector.x + normalVector.y * normalVector.y + normalVector.z * normalVector.z);
 
-	//std::cout << "Tri area:" << area << std::endl;
-
 	return area;
-
 }
 

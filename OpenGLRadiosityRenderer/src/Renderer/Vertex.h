@@ -1,3 +1,5 @@
+//Adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/mesh.h Vertex struct
+
 #ifndef VERTEX_H
 #define VERTEX_H
 

@@ -33,8 +33,7 @@ wxEND_EVENT_TABLE()
 SettingsFrame::SettingsFrame(wxWindow* parent, const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(parent, wxID_ANY, title, pos, size) {
 
-	//Might change these to enums but want to try how drop-down menus work first
-
+	//Default values
 	rendererResolution = 1;
 	lightmapResolution = 0;
 	attenuationType = 1;

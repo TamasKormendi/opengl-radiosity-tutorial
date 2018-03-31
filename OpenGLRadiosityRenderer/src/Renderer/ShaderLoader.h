@@ -1,3 +1,5 @@
+//Adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/shader_s.h and the corresponding tutorial
+
 #ifndef SHADERLOADER_H
 #define SHADERLOADER_H
 

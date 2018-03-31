@@ -260,38 +260,9 @@ void main() {
         //newIrradianceValue = vec3(isFragmentVisible, isFragmentVisible, isFragmentVisible);
 
         //Instead of this, normalising the value if any exceeds 1 might be more sensible    
-
-        
-        if (newIrradianceValue.r > 1) {
-            newIrradianceValue.r = 1;
-        }
-        if (newIrradianceValue.g > 1) {
-            newIrradianceValue.g = 1;
-        }
-        if (newIrradianceValue.b > 1) {
-            newIrradianceValue.b = 1;
-        }
         
         
 
         newRadianceValue = oldRadianceValue + deltaRadiance;
-
-
-        
-        if (newRadianceValue.r > diffuseValue.r) {
-            newRadianceValue.r = diffuseValue.r;
-        }
-        if (newRadianceValue.g > diffuseValue.g) {
-            newRadianceValue.g = diffuseValue.g;
-        }
-        if (newRadianceValue.b > diffuseValue.b) {
-            newRadianceValue.b = diffuseValue.b;
-        }
-
     }
-
-
-    
-    
-
 }

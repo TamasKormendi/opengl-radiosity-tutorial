@@ -51,6 +51,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
+
+//Camera-oriented global variables are based on https://learnopengl.com/Getting-started/Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 float lastX = SCREEN_WIDTH / 2.0f;
@@ -183,7 +185,6 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 
 	float shooterMeshSelectionQuadVertices[] = {
-		// positions   // texCoords
 		-1.0f,  1.0f,  0.0f, 1.0f,
 		-1.0f, -1.0f,  0.0f, 0.0f,
 		1.0f, -1.0f,  1.0f, 0.0f,
@@ -204,9 +205,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
-	//Based on https://learnopengl.com/In-Practice/Debugging
+	//Vertex coordinates are based on https://learnopengl.com/In-Practice/Debugging
 	float quadVertices[] = {
-		// positions   // texCoords
 		0.0f,  1.0f,  0.0f, 1.0f,
 		0.0f, 0.0f,  0.0f, 0.0f,
 		1.0f, 0.0f,  1.0f, 0.0f,
@@ -244,6 +244,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		lastFrameTime = currentFrameTime;
 
 		//TODO: This could be made a separate function
+		//Frame counter inspired by http://www.opengl-tutorial.org/miscellaneous/an-fps-counter/, additional features implemented here
 		if ((currentFrameTime - fpsTimeCounter) >= 1.0) {
 			double actualElapsedTime = (currentFrameTime - fpsTimeCounter);
 
@@ -262,7 +263,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		}
 
 		//Variables for drawing the scene
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(1.0f, 0.898f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		finalRenderShader.useProgram();
@@ -953,7 +954,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	glm::vec3& shooterWorldspacePos,
 	glm::vec3& shooterWorldspaceNormal) {
 
-	float borderColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	float borderColour[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 
 	//For an explanation take a look at the "double up" part in the report
@@ -988,8 +989,8 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	viewMatrices.push_back(downShooterView);
 
 
-	unsigned int hemicubeFrontFramebuffer;
-	glGenFramebuffers(1, &hemicubeFrontFramebuffer);
+	unsigned int hemicubeFramebuffer;
+	glGenFramebuffers(1, &hemicubeFramebuffer);
 
 	//The upcoming part renders the scene 5 times (for each hemicube face)
 	//Each render pass could be abstracted away into a function in order to eliminate code repetition, however,
@@ -1005,9 +1006,9 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFramebuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, frontDepthMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
@@ -1060,9 +1061,9 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFramebuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, leftDepthMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
@@ -1112,9 +1113,9 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFramebuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rightDepthMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
@@ -1163,9 +1164,9 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFramebuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, upDepthMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
@@ -1214,9 +1215,9 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFrontFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFramebuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, downDepthMap, 0);
 	glDrawBuffer(GL_NONE);
 	glReadBuffer(GL_NONE);
@@ -1268,7 +1269,7 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
 	depthTextures.push_back(upDepthMap);
 	depthTextures.push_back(downDepthMap);
 
-	glDeleteFramebuffers(1, &hemicubeFrontFramebuffer);
+	glDeleteFramebuffers(1, &hemicubeFramebuffer);
 
 
 	return depthTextures;
@@ -1868,6 +1869,8 @@ void Renderer::processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
+	//The WASD keys are Camera-related and thus are based on
+	//https://learnopengl.com/Getting-started/Camera
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 		camera.processKeyboard(FORWARD, deltaTime);
 	}
@@ -1942,6 +1945,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	}
 }
 
+
+//This function is related to the Camera and thus it is based on
+//https://learnopengl.com/Getting-started/Camera
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
 	if (firstMouse) {
 		lastX = xPos;

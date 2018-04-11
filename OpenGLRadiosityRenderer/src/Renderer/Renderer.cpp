@@ -3,6 +3,12 @@
 //and
 //http://www.opengl-tutorial.org/beginners-tutorials/tutorial-1-opening-a-window/
 
+//There are also some Camera-related variables and functions here. I tried my best to point this out
+//whenever there is a bigger chunk of Camera-related code. However, there might be instances where only a 
+//line or two remain in this implementation. For those cases I would like to reiterate what I stated in Camera.cpp/Camera.h:
+//The Camera related code is adapted from https://learnopengl.com/Getting-started/Camera
+//(Note that this is not the case for the mouse_button_callback function, since that function handles lights, not Camera functionality)
+
 #include "stdafx.h"
 
 #include <iostream>
@@ -54,11 +60,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 //Camera-oriented global variables are based on https://learnopengl.com/Getting-started/Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-
 float lastX = SCREEN_WIDTH / 2.0f;
 float lastY = SCREEN_HEIGHT / 2.0f;
 bool firstMouse = true;
-
 float deltaTime = 0.0f;
 float lastFrameTime = 0.0f;
 
@@ -183,7 +187,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 	int iterationNumber = 0;
 
-
+	//A quad that fills the whole screen
 	float shooterMeshSelectionQuadVertices[] = {
 		-1.0f,  1.0f,  0.0f, 1.0f,
 		-1.0f, -1.0f,  0.0f, 0.0f,
@@ -205,7 +209,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
-	//Vertex coordinates are based on https://learnopengl.com/In-Practice/Debugging
+	//Idea for these vertex coordinates is based on https://learnopengl.com/In-Practice/Debugging
 	float quadVertices[] = {
 		0.0f,  1.0f,  0.0f, 1.0f,
 		0.0f, 0.0f,  0.0f, 0.0f,
@@ -235,7 +239,8 @@ void Renderer::startRenderer(std::string objectFilepath) {
 	//RENDER LOOP STARTS HERE
 	while (!glfwWindowShouldClose(window)) {
 
-		//This section is for the FPS counter
+		//This section is for the FPS counter and time-keeping for the camera
+		//The camera-related parts are based on https://learnopengl.com/Getting-started/Camera 
 		++frameCounter;
 		
 		float currentFrameTime = glfwGetTime();

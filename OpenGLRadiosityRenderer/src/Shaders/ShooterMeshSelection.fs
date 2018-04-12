@@ -8,9 +8,10 @@ uniform vec3 meshID;
 uniform sampler2D mipmappedRadianceTexture;
 
 void main() {
-    //Values for testing output
+    //Check how many mipmap levels there are
     int mipmapLevel = textureQueryLevels(mipmappedRadianceTexture);
 
+    //Retrieve value from the top level
     vec3 averageEnergyVector = textureLod(mipmappedRadianceTexture, textureCoord, mipmapLevel).rgb;
 
     //Taken from http://sirkan.iit.bme.hu/~szirmay/gpugi1.pdf - at the time of writing (31/03/2018) the document is offline

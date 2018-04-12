@@ -788,14 +788,18 @@ void Renderer::selectMeshBasedShooter(ObjectModel& model, glm::vec3& shooterRadi
 
 	//Find the radiance of the next shooter
 	if (attenuationType == static_cast<int>(ATTENUATION::ATT_LINEAR) || attenuationType == static_cast<int>(ATTENUATION::ATT_QUAD)) {
-		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
-									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
-									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size());
+		shooterRadiance = glm::vec3(
+			model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+			model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size(),
+			model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size()
+		);
 	}
 	else {
-		shooterRadiance = glm::vec3(model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
-									model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
-									model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea);
+		shooterRadiance = glm::vec3(
+			model.meshes[shooterMeshIndex].radianceData[texelIndex] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
+			model.meshes[shooterMeshIndex].radianceData[texelIndex + 1] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea,
+			model.meshes[shooterMeshIndex].radianceData[texelIndex + 2] / model.meshes[shooterMeshIndex].texturespaceShooterIndices.size() * model.meshes[shooterMeshIndex].texelArea
+		);
 	}
 
 	//Find the other necessary information of the shooter
@@ -951,7 +955,8 @@ unsigned int Renderer::createVisibilityTexture(ObjectModel& model, ShaderLoader&
 }
 
 //TODO: This function could definitely use some refactoring down the line, but it does work
-std::vector<unsigned int> Renderer::createHemicubeTextures(ObjectModel& model,
+std::vector<unsigned int> Renderer::createHemicubeTextures(
+	ObjectModel& model,
 	ShaderLoader& hemicubeShader,
 	glm::mat4& mainObjectModelMatrix,
 	std::vector<glm::mat4>& viewMatrices,

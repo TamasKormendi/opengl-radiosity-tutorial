@@ -34,8 +34,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_MENU(wxID_ABOUT, MainFrame::OnAbout)
 wxEND_EVENT_TABLE()
 
-MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
-			: wxFrame(NULL, wxID_ANY, title, pos, size) {
+MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size) : wxFrame(NULL, wxID_ANY, title, pos, size) {
 
 	settings = new SettingsFrame(this, "Settings", wxPoint(50, 50), wxSize(450, 340));
 

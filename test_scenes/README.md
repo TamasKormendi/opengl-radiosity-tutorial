@@ -1,0 +1,1 @@
+These scenes were inspired by the Cornell box: https://www.graphics.cornell.edu/online/box/ and were made by Tamás Körmendi in Blender.

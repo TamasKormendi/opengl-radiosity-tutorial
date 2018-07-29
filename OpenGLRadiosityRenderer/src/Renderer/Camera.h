@@ -1,4 +1,4 @@
-//Code adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
+//Code adapted from https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h and corresponding tutorial
 
 #ifndef CAMERA_H
 #define CAMERA_H

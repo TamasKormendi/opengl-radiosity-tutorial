@@ -1,3 +1,5 @@
+//This shader program is not used in the main execution anymore - only left here for archival purposes
+
 #version 450 core
 
 layout (location = 0) in vec3 vertexPos;
@@ -20,15 +22,15 @@ void main() {
 
     //Hemispherical projection code from https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter39.html
 
-    vec4 mpos = view * model * vec4(vertexPos, 1.0);
+    vec4 modelViewPosition = view * model * vec4(vertexPos, 1.0);
 
-    vec3 hemi_pt = normalize(mpos.xyz);
+    vec3 hemispherePoint = normalize(modelViewPosition.xyz);
 
-    float f_minus_n = far - near;
+    float farMinusNearPlane = far - near;
 
-    gl_Position.xy = hemi_pt.xy * f_minus_n;
+    gl_Position.xy = hemispherePoint.xy * farMinusNearPlane;
 
-    gl_Position.z = (-2.0 * mpos.z - far - near);
+    gl_Position.z = (-2.0 * modelViewPosition.z - far - near);
 
-    gl_Position.w = f_minus_n;
+    gl_Position.w = farMinusNearPlane;
 }

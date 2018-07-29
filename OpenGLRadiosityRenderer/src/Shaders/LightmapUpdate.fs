@@ -58,10 +58,8 @@ float isVisible(sampler2D hemicubeFaceVisibilityTexture, vec4 hemicubeFaceSpaceF
 
     //Use percentage-closer filtering (PCF), 25 samples
     vec2 texelSize = 1.0 / textureSize(hemicubeFaceVisibilityTexture, 0);
-    for(int x = -2; x <= 2; ++x)
-    {
-        for(int y = -2; y <= 2; ++y)
-        {
+    for(int x = -2; x <= 2; ++x) {
+        for(int y = -2; y <= 2; ++y) {
             float pcfDepth = texture(hemicubeFaceVisibilityTexture, projectedCoordinates.xy + vec2(x, y) * texelSize).r; 
             shadow += (currentDepth - bias) > pcfDepth ? 0.0 : 1.0;        
         }    

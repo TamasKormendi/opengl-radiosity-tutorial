@@ -350,6 +350,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 				if (multisampling) {
 					lightmapUpdateShaderMultisample.useProgram();
+					lightmapUpdateShaderMultisample.setUniformMat4("projection", shooterProj);
 					lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
 					lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
 					lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
@@ -358,6 +359,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 				}
 				else {
 					lightmapUpdateShader.useProgram();
+					lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 					lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
 					lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
 					lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
@@ -403,6 +405,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 
 					if (multisampling) {
 						lightmapUpdateShaderMultisample.useProgram();
+						lightmapUpdateShaderMultisample.setUniformMat4("projection", shooterProj);
 						lightmapUpdateShaderMultisample.setUniformVec3("shooterRadiance", shooterRadiance);
 						lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
 						lightmapUpdateShaderMultisample.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
@@ -411,6 +414,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 					}
 					else {
 						lightmapUpdateShader.useProgram();
+						lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 						lightmapUpdateShader.setUniformVec3("shooterRadiance", shooterRadiance);
 						lightmapUpdateShader.setUniformVec3("shooterWorldspacePos", shooterWorldspacePos);
 						lightmapUpdateShader.setUniformVec3("shooterWorldspaceNormal", shooterWorldspaceNormal);
@@ -1028,16 +1032,11 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(
 	//Need to get rid of this when/if we cut off half of the depth maps
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
-
 	int lampCounter = 0;
 
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		hemicubeShader.useProgram();
-
-
-		hemicubeShader.setUniformMat4("projection", shooterProj);
 
 		hemicubeShader.setUniformMat4("view", frontShooterView);
 
@@ -1088,9 +1087,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(
 
 		hemicubeShader.useProgram();
 
-
-		hemicubeShader.setUniformMat4("projection", shooterProj);
-
 		hemicubeShader.setUniformMat4("view", leftShooterView);
 
 
@@ -1139,8 +1135,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		hemicubeShader.useProgram();
-
-		hemicubeShader.setUniformMat4("projection", shooterProj);
 
 		hemicubeShader.setUniformMat4("view", rightShooterView);
 
@@ -1191,8 +1185,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(
 
 		hemicubeShader.useProgram();
 
-		hemicubeShader.setUniformMat4("projection", shooterProj);
-
 		hemicubeShader.setUniformMat4("view", upShooterView);
 
 
@@ -1241,8 +1233,6 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		hemicubeShader.useProgram();
-
-		hemicubeShader.setUniformMat4("projection", shooterProj);
 
 		hemicubeShader.setUniformMat4("view", downShooterView);
 
@@ -1340,10 +1330,7 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		std::vector<GLfloat> newIrradianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 		std::vector<GLfloat> newRadianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 
-		glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
-
 		lightmapUpdateShader.useProgram();
-		lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 
 		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
 
@@ -1740,10 +1727,7 @@ void Renderer::updateLightmapsMultisample(ObjectModel& model, ShaderLoader& ligh
 		std::vector<GLfloat> newIrradianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 		std::vector<GLfloat> newRadianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 
-		glm::mat4 shooterProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
-
 		lightmapUpdateShader.useProgram();
-		lightmapUpdateShader.setUniformMat4("projection", shooterProj);
 
 		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
 

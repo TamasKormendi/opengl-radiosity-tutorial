@@ -1010,6 +1010,102 @@ std::vector<unsigned int> Renderer::createHemicubeTextures(
 	//Each render pass could be abstracted away into a function in order to eliminate code repetition, however,
 	//I find that this way the code is slightly easier to understand, since everything is in one place
 
+	/*Alternate solution:
+	First let's have a function that creates a texture for a hemicube depth map
+
+	unsigned int Renderer::createHemicubeDepthMapTexture(const unsigned int resolution) {
+		float borderColour[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		unsigned int depthMapTexture;
+
+		glGenTextures(1, &depthMapTexture);
+		glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		//This part is needed to avoid light bleeding by oversampling (so sampling outside the depth texture)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
+
+		return depthMapTexture;
+	}
+
+
+	After, in the function we are at now:
+
+	unsigned int frontDepthMap = createHemicubeDepthMapTexture(resolution);
+	unsigned int leftDepthMap = createHemicubeDepthMapTexture(resolution);
+	unsigned int rightDepthMap = createHemicubeDepthMapTexture(resolution);
+	unsigned int upDepthMap = createHemicubeDepthMapTexture(resolution);
+	unsigned int downDepthMap = createHemicubeDepthMapTexture(resolution);
+
+	std::vector<unsigned int> depthTextures;
+
+	depthTextures.push_back(frontDepthMap);
+
+	depthTextures.push_back(leftDepthMap);
+	depthTextures.push_back(rightDepthMap);
+
+	depthTextures.push_back(upDepthMap);
+	depthTextures.push_back(downDepthMap);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, hemicubeFramebuffer);
+
+	//Loop 5 times, for each of the hemicube faces
+	for (unsigned int i = 0; i < 5; ++i) {
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextures[i], 0);
+
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+
+		glViewport(0, 0, resolution, resolution);
+
+		//Need to get rid of this when/if we cut off half of the depth maps
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		int lampCounter = 0;
+
+		for (unsigned int i = 0; i < model.meshes.size(); ++i) {
+
+			hemicubeShader.useProgram();
+
+			hemicubeShader.setUniformMat4("view", viewMatrices[i]);
+
+
+			if (model.meshes[i].isLamp) {
+				glm::mat4 lampModel = glm::mat4();
+
+				lampModel = glm::translate(lampModel, lightLocations[lampCounter]);
+				lampModel = glm::scale(lampModel, glm::vec3(lampScale));
+
+				hemicubeShader.setUniformMat4("model", lampModel);
+
+				model.meshes[i].draw(hemicubeShader);
+
+				++lampCounter;
+			}
+			else {
+				hemicubeShader.setUniformMat4("model", mainObjectModelMatrix);
+
+				model.meshes[i].draw(hemicubeShader);
+			}
+		}
+	}
+
+
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glDeleteFramebuffers(1, &hemicubeFramebuffer);
+
+	return depthTextures;
+
+
+	Instead of the code below, this avoids a bunch of repetition but might be a bit harder to understand so I'll leave both
+	*/
+
 	unsigned int frontDepthMap;
 	glGenTextures(1, &frontDepthMap);
 	glBindTexture(GL_TEXTURE_2D, frontDepthMap);

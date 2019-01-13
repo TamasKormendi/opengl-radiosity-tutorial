@@ -97,27 +97,29 @@ void main() {
     //Form factor between shooter and receiver
     float Fij = 0.0;
 
-    //Fixed and adapted from http://sirkan.iit.bme.hu/~szirmay/gpugi1.pdf
+    //Adapted from http://sirkan.iit.bme.hu/~szirmay/gpugi1.pdf
     //(Previous versions of this part also used https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter39.html
     //but by now only a few variable names might remain)
 
     //Calculations are done in camera-space position, if the hemicube front is considered the camera
 
     //A vector from the shooter to the receiver
-    vec3 shooterReceiverVector = normalize(-cameraspace_position);
+    vec3 shooterReceiverVector = normalize(cameraspace_position);
+    //This might not be necessary - just in case the normal vectors aren't normalised
+    vec3 normalisedNormalLightSpace = normalize(normalLightSpace);
 
     float distanceSquared = dot(cameraspace_position, cameraspace_position);
-    float distanceLinear = sqrt(distanceSquared);
+    float distanceLinear = length(cameraspace_position);
 
-    float cosThetaX = dot(normalLightSpace, shooterReceiverVector);
+    float cosThetaX = dot(normalisedNormalLightSpace, -shooterReceiverVector);
     if (cosThetaX < 0) {
         cosThetaX = 0;
     }
 
-    //In camera-space the shooter looks along positive Z
-    vec3 shooterDirectionVector = vec3(0, 0, 1);
+    //In camera-space the shooter looks along negative Z
+    vec3 shooterDirectionVector = vec3(0, 0, -1);
 
-    float cosThetaY = shooterReceiverVector.z;
+    float cosThetaY = dot(shooterDirectionVector, shooterReceiverVector);
     if (cosThetaY < 0) {
         cosThetaY = 0;
     } 

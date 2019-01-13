@@ -101,20 +101,20 @@ void main() {
     //Calculations are done in camera-space position, if the hemicube front is considered the camera
 
     //A vector from the shooter to the receiver
-    vec3 shooterReceiverVector = normalize(-cameraspace_position);
+    vec3 shooterReceiverVector = normalize(cameraspace_position);
 
     float distanceSquared = dot(cameraspace_position, cameraspace_position);
-    float distanceLinear = sqrt(distanceSquared);
+    float distanceLinear = length(cameraspace_position);
 
-    float cosThetaX = dot(normalLightSpace, shooterReceiverVector);
+    float cosThetaX = dot(normalLightSpace, -shooterReceiverVector);
     if (cosThetaX < 0) {
         cosThetaX = 0;
     }
 
-    //In camera-space the shooter looks along positive Z
-    vec3 shooterDirectionVector = vec3(0, 0, 1);
+    //In camera-space the shooter looks along negative Z
+    vec3 shooterDirectionVector = vec3(0, 0, -1);
 
-    float cosThetaY = shooterReceiverVector.z;
+    float cosThetaY = dot(shooterDirectionVector, shooterReceiverVector);
     if (cosThetaY < 0) {
         cosThetaY = 0;
     } 

@@ -274,7 +274,7 @@ void Renderer::startRenderer(std::string objectFilepath) {
 		finalRenderShader.useProgram();
 
 		glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
+		//glm::mat4 ortho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
 		glm::mat4 view = camera.getViewMatrix();
 		finalRenderShader.setUniformMat4("projection", projection);
 		finalRenderShader.setUniformMat4("view", view);
@@ -1415,30 +1415,53 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+	//Set the view matrices
+	lightmapUpdateShader.useProgram();
+
+	lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
+
+	lightmapUpdateShader.setUniformMat4("leftView", viewMatrices[1]);
+	lightmapUpdateShader.setUniformMat4("rightView", viewMatrices[2]);
+
+	lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
+	lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
+
+	lightmapUpdateShader.setUniformInt("attenuationType", attenuationType);
+
+	//Also bind the visibility textures
+	glActiveTexture(GL_TEXTURE2);
+	lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
+	glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
+
+	glActiveTexture(GL_TEXTURE3);
+	lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 3);
+	glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
+
+	glActiveTexture(GL_TEXTURE4);
+	lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 4);
+	glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
+
+	glActiveTexture(GL_TEXTURE5);
+	lightmapUpdateShader.setUniformInt("upVisibilityTexture", 5);
+	glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
+
+	glActiveTexture(GL_TEXTURE6);
+	lightmapUpdateShader.setUniformInt("downVisibilityTexture", 6);
+	glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
+
+	//Set the active texture to GL_TEXTURE0 afterwards
+	glActiveTexture(GL_TEXTURE0);
+
 	int lampCounter = 0;
 
 	for (unsigned int i = 0; i < model.meshes.size(); ++i) {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		lightmapUpdateShader.useProgram();
-
 		std::vector<GLfloat> newIrradianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 		std::vector<GLfloat> newRadianceDataBuffer(::RADIOSITY_TEXTURE_SIZE * ::RADIOSITY_TEXTURE_SIZE * 3);
 
-		lightmapUpdateShader.useProgram();
-
-		lightmapUpdateShader.setUniformMat4("view", viewMatrices[0]);
-
-		lightmapUpdateShader.setUniformMat4("leftView", viewMatrices[1]);
-		lightmapUpdateShader.setUniformMat4("rightView", viewMatrices[2]);
-
-		lightmapUpdateShader.setUniformMat4("upView", viewMatrices[3]);
-		lightmapUpdateShader.setUniformMat4("downView", viewMatrices[4]);
-
 		lightmapUpdateShader.setUniformFloat("texelArea", model.meshes[i].texelArea);
-		lightmapUpdateShader.setUniformInt("attenuationType", attenuationType);
-
 
 		//Create textures from the old irradiance and radiance data
 		unsigned int irradianceID;
@@ -1449,8 +1472,6 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-
-
 		unsigned int radianceID;
 		glGenTextures(1, &radianceID);
 
@@ -1458,7 +1479,6 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, ::RADIOSITY_TEXTURE_SIZE, ::RADIOSITY_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, &model.meshes[i].radianceData[0]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
 
 		//Bind them
 		glActiveTexture(GL_TEXTURE0);
@@ -1468,27 +1488,6 @@ void Renderer::updateLightmaps(ObjectModel& model, ShaderLoader& lightmapUpdateS
 		glActiveTexture(GL_TEXTURE1);
 		lightmapUpdateShader.setUniformInt("radianceTexture", 1);
 		glBindTexture(GL_TEXTURE_2D, radianceID);
-		
-		//Also bind the visibility textures
-		glActiveTexture(GL_TEXTURE2);
-		lightmapUpdateShader.setUniformInt("visibilityTexture", 2);
-		glBindTexture(GL_TEXTURE_2D, visibilityTextures[0]);
-
-		glActiveTexture(GL_TEXTURE3);
-		lightmapUpdateShader.setUniformInt("leftVisibilityTexture", 3);
-		glBindTexture(GL_TEXTURE_2D, visibilityTextures[1]);
-
-		glActiveTexture(GL_TEXTURE4);
-		lightmapUpdateShader.setUniformInt("rightVisibilityTexture", 4);
-		glBindTexture(GL_TEXTURE_2D, visibilityTextures[2]);
-
-		glActiveTexture(GL_TEXTURE5);
-		lightmapUpdateShader.setUniformInt("upVisibilityTexture", 5);
-		glBindTexture(GL_TEXTURE_2D, visibilityTextures[3]);
-
-		glActiveTexture(GL_TEXTURE6);
-		lightmapUpdateShader.setUniformInt("downVisibilityTexture", 6);
-		glBindTexture(GL_TEXTURE_2D, visibilityTextures[4]);
 
 		if (model.meshes[i].isLamp) {
 			glm::mat4 lampModel = glm::mat4();
